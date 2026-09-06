@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
 import { MODERN_EGYPT_BORDER } from '../data/modernEgyptBorder';
-import { Layers, Eye, Compass } from 'lucide-react';
+import { Layers, Eye, EyeOff, Compass, Maximize2 } from 'lucide-react';
 
 interface AtlasMapProps {
   currentSlide: SlideData;
@@ -29,6 +29,9 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   const landmarksLayerRef = useRef<L.LayerGroup | null>(null);
   const capitalMarkerRef = useRef<L.Marker | null>(null);
   const modernBorderLayerRef = useRef<L.Polygon | null>(null);
+
+  // State to toggle legend panel visibility
+  const [isLegendOpen, setIsLegendOpen] = useState(true);
 
   // Initialize Map
   useEffect(() => {
@@ -332,97 +335,127 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       />
 
       {/* Floating Legend & Map Controls Bar */}
-      <div
-        id="map-legend-panel"
-        className="absolute top-3.5 right-3.5 z-[500] bg-[#e9e0c7]/95 backdrop-blur-sm text-[#241d12] text-xs p-3 rounded shadow-md border border-[#c9bd97] max-w-[270px] select-none transition-all"
-      >
-        <div className="flex items-center justify-between border-b border-[#c9bd97]/60 pb-1.5 mb-2">
-          <div className="font-serif font-bold text-sm text-[#8a3b24] flex items-center gap-1.5">
-            <Compass className="w-4 h-4 text-[#8a3b24]" />
-            <span>دليل الخريطة التاريخية</span>
+      {!isLegendOpen ? (
+        <button
+          id="show-legend-btn"
+          onClick={() => setIsLegendOpen(true)}
+          title="إظهار دليل الخريطة التاريخية"
+          className="absolute top-3.5 right-3.5 z-[500] bg-[#e9e0c7]/95 hover:bg-[#ded1ab] active:scale-95 text-[#8a3b24] text-xs font-serif font-bold px-3 py-2 rounded shadow-md border border-[#c9bd97] flex items-center gap-2 transition-all cursor-pointer select-none"
+        >
+          <Compass className="w-4 h-4 text-[#8a3b24]" />
+          <span>دليل الخريطة</span>
+          <Eye className="w-3.5 h-3.5 text-[#8a3b24]" />
+        </button>
+      ) : (
+        <div
+          id="map-legend-panel"
+          className="absolute top-3.5 right-3.5 z-[500] bg-[#e9e0c7]/95 backdrop-blur-sm text-[#241d12] text-xs p-3 rounded shadow-md border border-[#c9bd97] max-w-[270px] select-none transition-all animate-in fade-in zoom-in-95 duration-150"
+        >
+          <div className="flex items-center justify-between border-b border-[#c9bd97]/60 pb-1.5 mb-2 gap-2">
+            <div className="font-serif font-bold text-sm text-[#8a3b24] flex items-center gap-1.5">
+              <Compass className="w-4 h-4 text-[#8a3b24]" />
+              <span>دليل الخريطة التاريخية</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                id="recenter-map-btn"
+                onClick={handleRecenter}
+                title="إعادة ضبط إطار الرؤية للمنطقة"
+                className="p-1 hover:bg-[#d9cfae] rounded text-[#4a4130] transition-colors flex items-center justify-center cursor-pointer"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                id="hide-legend-btn"
+                onClick={() => setIsLegendOpen(false)}
+                title="إخفاء دليل الخريطة"
+                className="p-1 hover:bg-[#d9cfae] rounded text-[#8a3b24] hover:text-[#5f200f] transition-colors flex items-center justify-center cursor-pointer"
+              >
+                <EyeOff className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <button
-            id="recenter-map-btn"
-            onClick={handleRecenter}
-            title="إعادة ضبط إطار الرؤية"
-            className="p-1 hover:bg-[#d9cfae] rounded text-[#4a4130] transition-colors"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
-        </div>
 
-        {/* Legend swatches */}
-        <div className="space-y-1.5 text-[11.5px] leading-tight">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-[#8a3b24] opacity-80 shrink-0 border border-[#8a3b24]"></span>
-            <span className="font-medium">المساحة السيادية الأساسية</span>
+          {/* Legend swatches */}
+          <div className="space-y-1.5 text-[11.5px] leading-tight">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-sm bg-[#8a3b24] opacity-80 shrink-0 border border-[#8a3b24]"></span>
+              <span className="font-medium">المساحة السيادية الأساسية</span>
+            </div>
+
+            {currentSlide.extent?.secondary && (
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm bg-[#3f6259] opacity-75 shrink-0 border border-dashed border-[#3f6259]"></span>
+                <span className="text-[#3f6259] font-medium">{currentSlide.extent.secondaryLabel || 'إقليم تابع / سيادة ثانوية'}</span>
+              </div>
+            )}
+
+            {currentSlide.extent?.outposts && currentSlide.extent.outposts.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#f7f4ea] border-2 border-[#a9863f] shrink-0"></span>
+                <span>محطات وثغور خارجية منفصلة</span>
+              </div>
+            )}
+
+            {currentSlide.capital && (
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#8a3b24] border border-[#e9e0c7] flex items-center justify-center text-[8px] text-white font-bold shrink-0">★</span>
+                <span>العاصمة والقلب الإداري</span>
+              </div>
+            )}
           </div>
 
-          {currentSlide.extent?.secondary && (
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[#3f6259] opacity-75 shrink-0 border border-dashed border-[#3f6259]"></span>
-              <span className="text-[#3f6259] font-medium">{currentSlide.extent.secondaryLabel || 'إقليم تابع / سيادة ثانوية'}</span>
-            </div>
-          )}
-
-          {currentSlide.extent?.outposts && currentSlide.extent.outposts.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#f7f4ea] border-2 border-[#a9863f] shrink-0"></span>
-              <span>محطات وثغور خارجية منفصلة</span>
-            </div>
-          )}
-
-          {currentSlide.capital && (
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#8a3b24] border border-[#e9e0c7] flex items-center justify-center text-[8px] text-white font-bold shrink-0">★</span>
-              <span>العاصمة والقلب الإداري</span>
-            </div>
-          )}
-        </div>
-
-        {/* Interactive Layer Toggles */}
-        <div className="mt-2.5 pt-2 border-t border-[#c9bd97]/60 space-y-1.5">
-          <button
-            id="toggle-modern-border-btn"
-            onClick={onToggleModernBorder}
-            className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors ${
-              showModernBorder
-                ? 'bg-[#0d9488]/15 border-[#0d9488] text-[#0f766e]'
-                : 'bg-transparent border-[#c9bd97] text-[#4a4130] hover:bg-[#d9cfae]/50'
-            }`}
-          >
-            <span className="flex items-center gap-1.5">
-              <Layers className="w-3 h-3" />
-              <span>مقارنة مع حدود مصر المعاصرة</span>
-            </span>
-            <span className={`text-[10px] px-1 py-0.5 rounded ${showModernBorder ? 'bg-[#0d9488] text-white' : 'bg-[#c9bd97] text-[#241d12]'}`}>
-              {showModernBorder ? 'مفعّل' : 'معطّل'}
-            </span>
-          </button>
-
-          {currentSlide.extent?.frontierLandmarks && currentSlide.extent.frontierLandmarks.length > 0 && (
+          {/* Interactive Layer Toggles */}
+          <div className="mt-2.5 pt-2 border-t border-[#c9bd97]/60 space-y-1.5">
             <button
-              id="toggle-landmarks-btn"
-              onClick={onToggleFrontierLandmarks}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors ${
-                showFrontierLandmarks
-                  ? 'bg-[#3f6259]/15 border-[#3f6259] text-[#2a443e]'
+              id="toggle-modern-border-btn"
+              onClick={onToggleModernBorder}
+              className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
+                showModernBorder
+                  ? 'bg-[#0d9488]/15 border-[#0d9488] text-[#0f766e]'
                   : 'bg-transparent border-[#c9bd97] text-[#4a4130] hover:bg-[#d9cfae]/50'
               }`}
             >
-              <span>إظهار قلاع ومعالم الحدود</span>
-              <span className={`text-[10px] px-1 py-0.5 rounded ${showFrontierLandmarks ? 'bg-[#3f6259] text-white' : 'bg-[#c9bd97] text-[#241d12]'}`}>
-                {showFrontierLandmarks ? 'مفعّل' : 'معطّل'}
+              <span className="flex items-center gap-1.5">
+                <Layers className="w-3 h-3" />
+                <span>مقارنة مع حدود مصر المعاصرة</span>
+              </span>
+              <span className={`text-[10px] px-1 py-0.5 rounded ${showModernBorder ? 'bg-[#0d9488] text-white' : 'bg-[#c9bd97] text-[#241d12]'}`}>
+                {showModernBorder ? 'مفعّل' : 'معطّل'}
               </span>
             </button>
-          )}
-        </div>
 
-        {/* Clarification note */}
-        <div className="mt-2 text-[10px] text-[#6e5d42] leading-snug border-t border-[#c9bd97]/40 pt-1.5">
-          ⓘ الحدود توضيحية تقريبية مبنية على معالم تاريخية ومعاهدات مسجلة وليست ترسيماً نهائياً.
+            {currentSlide.extent?.frontierLandmarks && currentSlide.extent.frontierLandmarks.length > 0 && (
+              <button
+                id="toggle-landmarks-btn"
+                onClick={onToggleFrontierLandmarks}
+                className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
+                  showFrontierLandmarks
+                    ? 'bg-[#3f6259]/15 border-[#3f6259] text-[#2a443e]'
+                    : 'bg-transparent border-[#c9bd97] text-[#4a4130] hover:bg-[#d9cfae]/50'
+                }`}
+              >
+                <span>إظهار قلاع ومعالم الحدود</span>
+                <span className={`text-[10px] px-1 py-0.5 rounded ${showFrontierLandmarks ? 'bg-[#3f6259] text-white' : 'bg-[#c9bd97] text-[#241d12]'}`}>
+                  {showFrontierLandmarks ? 'مفعّل' : 'معطّل'}
+                </span>
+              </button>
+            )}
+          </div>
+
+          {/* Clarification note */}
+          <div className="mt-2 text-[10px] text-[#6e5d42] leading-snug border-t border-[#c9bd97]/40 pt-1.5 flex items-center justify-between">
+            <span>ⓘ الحدود تقريبية ومبنية على معالم تاريخية.</span>
+            <button
+              id="hide-legend-text-btn"
+              onClick={() => setIsLegendOpen(false)}
+              className="text-[#8a3b24] hover:underline cursor-pointer shrink-0 mr-1 font-medium"
+            >
+              إخفاء الدليل
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
