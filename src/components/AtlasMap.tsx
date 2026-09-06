@@ -4,6 +4,121 @@ import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
 import { MODERN_EGYPT_BORDER } from '../data/modernEgyptBorder';
 import { Layers, Eye, Compass, Maximize2, X } from 'lucide-react';
 
+/**
+ * Bulletproof camera transition helper.
+ * Prevents Leaflet's getBoundsZoom from calculating Math.log(negative)
+ * when container dimensions are 0 or smaller than padding, which causes
+ * "Uncaught Error: Invalid LatLng object: (NaN, NaN)".
+ */
+function safeFlyToBounds(
+  map: L.Map | null,
+  points: [number, number][],
+  fallbackCenter?: [number, number]
+) {
+  if (!map) return;
+
+  const defaultCenter: [number, number] = [26.8, 30.8];
+  const safeFallback: [number, number] =
+    fallbackCenter &&
+    typeof fallbackCenter[0] === 'number' &&
+    !isNaN(fallbackCenter[0]) &&
+    isFinite(fallbackCenter[0]) &&
+    typeof fallbackCenter[1] === 'number' &&
+    !isNaN(fallbackCenter[1]) &&
+    isFinite(fallbackCenter[1])
+      ? fallbackCenter
+      : defaultCenter;
+
+  const validPoints = points.filter(
+    (pt) =>
+      Array.isArray(pt) &&
+      pt.length >= 2 &&
+      typeof pt[0] === 'number' &&
+      !isNaN(pt[0]) &&
+      isFinite(pt[0]) &&
+      typeof pt[1] === 'number' &&
+      !isNaN(pt[1]) &&
+      isFinite(pt[1])
+  );
+
+  if (validPoints.length === 0) {
+    try {
+      map.flyTo(safeFallback, 5, { duration: 0.8 });
+    } catch {
+      map.setView(safeFallback, 5);
+    }
+    return;
+  }
+
+  if (validPoints.length === 1) {
+    try {
+      map.flyTo(validPoints[0], 6, { duration: 0.8 });
+    } catch {
+      map.setView(validPoints[0], 6);
+    }
+    return;
+  }
+
+  try {
+    const bounds = L.latLngBounds(validPoints);
+    if (!bounds.isValid()) {
+      map.flyTo(safeFallback, 5, { duration: 0.8 });
+      return;
+    }
+
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    if (
+      !sw ||
+      !ne ||
+      isNaN(sw.lat) ||
+      isNaN(sw.lng) ||
+      isNaN(ne.lat) ||
+      isNaN(ne.lng)
+    ) {
+      map.flyTo(safeFallback, 5, { duration: 0.8 });
+      return;
+    }
+
+    // Identical bounds (single point cluster)
+    if (Math.abs(sw.lat - ne.lat) < 0.0001 && Math.abs(sw.lng - ne.lng) < 0.0001) {
+      map.flyTo([sw.lat, sw.lng], 6, { duration: 0.8 });
+      return;
+    }
+
+    map.invalidateSize();
+    const size = map.getSize();
+
+    // If container size is 0 or too small for padding, getBoundsZoom produces negative size -> Math.log(neg) -> NaN!
+    if (!size || size.x <= 100 || size.y <= 100) {
+      const c = bounds.getCenter();
+      if (c && !isNaN(c.lat) && !isNaN(c.lng) && isFinite(c.lat) && isFinite(c.lng)) {
+        map.setView([c.lat, c.lng], 5);
+      } else {
+        map.setView(safeFallback, 5);
+      }
+      return;
+    }
+
+    // Dynamic padding so it never exceeds 10% of container dimensions
+    const padX = Math.max(8, Math.min(35, Math.floor(size.x * 0.08)));
+    const padY = Math.max(8, Math.min(35, Math.floor(size.y * 0.08)));
+
+    map.flyToBounds(bounds, {
+      padding: [padY, padX],
+      duration: 0.9,
+      maxZoom: 7
+    });
+  } catch (err) {
+    console.warn('safeFlyToBounds fallback triggered:', err);
+    try {
+      map.setView(safeFallback, 5);
+    } catch {
+      // safe fallback
+    }
+  }
+}
+
 interface AtlasMapProps {
   currentSlide: SlideData;
   showModernBorder: boolean;
@@ -124,7 +239,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
     const extent = currentSlide.extent;
     const capital = currentSlide.capital;
-    const boundsPoints: L.LatLngExpression[] = [];
+    const boundsPoints: [number, number][] = [];
 
     // Custom icons
     const capitalIcon = L.divIcon({
@@ -142,53 +257,76 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     });
 
     // 2. Draw Core Polygon (Red-ochre #8a3b24)
-    if (extent?.core && extent.core.length > 0) {
-      const corePoly = L.polygon(extent.core, {
-        color: '#8a3b24',
-        weight: 2.5,
-        fillColor: '#8a3b24',
-        fillOpacity: 0.22,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(map);
+    if (extent?.core && Array.isArray(extent.core) && extent.core.length > 0) {
+      const validCore = extent.core.filter(
+        pt => Array.isArray(pt) && pt.length >= 2 && !isNaN(pt[0]) && isFinite(pt[0]) && !isNaN(pt[1]) && isFinite(pt[1])
+      ) as [number, number][];
 
-      const label = extent.coreLabel || 'الحدود السيادية الأساسية';
-      corePoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#8a3b24] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
-        sticky: true,
-        direction: 'top',
-        className: 'historical-tooltip'
-      });
+      if (validCore.length > 0) {
+        const corePoly = L.polygon(validCore, {
+          color: '#8a3b24',
+          weight: 2.5,
+          fillColor: '#8a3b24',
+          fillOpacity: 0.22,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(map);
 
-      coreLayerRef.current = corePoly;
-      extent.core.forEach(pt => boundsPoints.push(pt));
+        const label = extent.coreLabel || 'الحدود السيادية الأساسية';
+        corePoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#8a3b24] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
+          sticky: true,
+          direction: 'top',
+          className: 'historical-tooltip'
+        });
+
+        coreLayerRef.current = corePoly;
+        validCore.forEach(pt => boundsPoints.push(pt));
+      }
     }
 
     // 3. Draw Secondary Polygon (Verdigris #3f6259 dashed)
-    if (extent?.secondary && extent.secondary.length > 0) {
-      const secPoly = L.polygon(extent.secondary, {
-        color: '#3f6259',
-        weight: 2,
-        dashArray: '6, 6',
-        fillColor: '#3f6259',
-        fillOpacity: 0.18,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(map);
+    if (extent?.secondary && Array.isArray(extent.secondary) && extent.secondary.length > 0) {
+      const validSec = extent.secondary.filter(
+        pt => Array.isArray(pt) && pt.length >= 2 && !isNaN(pt[0]) && isFinite(pt[0]) && !isNaN(pt[1]) && isFinite(pt[1])
+      ) as [number, number][];
 
-      const label = extent.secondaryLabel || 'إقليم تابع / نفوذ إقليمي';
-      secPoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#3f6259] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
-        sticky: true,
-        direction: 'top',
-        className: 'historical-tooltip'
-      });
+      if (validSec.length > 0) {
+        const secPoly = L.polygon(validSec, {
+          color: '#3f6259',
+          weight: 2,
+          dashArray: '6, 6',
+          fillColor: '#3f6259',
+          fillOpacity: 0.18,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(map);
 
-      secondaryLayerRef.current = secPoly;
-      extent.secondary.forEach(pt => boundsPoints.push(pt));
+        const label = extent.secondaryLabel || 'إقليم تابع / نفوذ إقليمي';
+        secPoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#3f6259] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
+          sticky: true,
+          direction: 'top',
+          className: 'historical-tooltip'
+        });
+
+        secondaryLayerRef.current = secPoly;
+        validSec.forEach(pt => boundsPoints.push(pt));
+      }
     }
 
     // 4. Draw Outposts (Golden dots #a9863f)
     if (extent?.outposts && extent.outposts.length > 0 && outpostsLayerRef.current) {
       extent.outposts.forEach((outpost: OutpostPoint) => {
+        if (
+          typeof outpost.lat !== 'number' ||
+          isNaN(outpost.lat) ||
+          !isFinite(outpost.lat) ||
+          typeof outpost.lon !== 'number' ||
+          isNaN(outpost.lon) ||
+          !isFinite(outpost.lon)
+        ) {
+          return;
+        }
+
         const marker = L.circleMarker([outpost.lat, outpost.lon], {
           radius: 6,
           color: '#a9863f',
@@ -197,15 +335,17 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           fillOpacity: 1
         });
 
-        marker.bindTooltip(`
-          <div dir="rtl" class="font-sans text-right" style="white-space: normal; width: 190px; max-width: 210px;">
-            <div class="font-bold text-xs text-[#8a3b24] border-b border-[#c9bd97] pb-1 mb-1">📍 ${outpost.name}</div>
-            ${outpost.desc ? `<div class="text-[11px] text-[#4a4130] leading-snug">${outpost.desc}</div>` : ''}
+        // Click / Touch popup (the back one with full details)
+        marker.bindPopup(`
+          <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
+            <div class="text-[11px] font-bold text-[#8a3b24] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">📍 ثغر / محطة متقدمة</div>
+            <div class="font-serif font-bold text-sm text-[#141c17]">${outpost.name}</div>
+            ${outpost.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${outpost.desc}</div>` : ''}
           </div>
         `, {
-          direction: 'top',
+          className: 'historical-popup',
           offset: [0, -8],
-          className: 'historical-tooltip'
+          autoPan: true
         });
 
         outpostsLayerRef.current?.addLayer(marker);
@@ -216,6 +356,17 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     // 5. Draw Frontier Landmarks (if enabled)
     if (showFrontierLandmarks && extent?.frontierLandmarks && landmarksLayerRef.current) {
       extent.frontierLandmarks.forEach((lm: FrontierLandmark) => {
+        if (
+          typeof lm.lat !== 'number' ||
+          isNaN(lm.lat) ||
+          !isFinite(lm.lat) ||
+          typeof lm.lon !== 'number' ||
+          isNaN(lm.lon) ||
+          !isFinite(lm.lon)
+        ) {
+          return;
+        }
+
         const marker = L.circleMarker([lm.lat, lm.lon], {
           radius: 5,
           color: '#2a443e',
@@ -224,15 +375,17 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           fillOpacity: 0.85
         });
 
-        marker.bindTooltip(`
-          <div dir="rtl" class="font-sans text-right" style="white-space: normal; width: 190px; max-width: 210px;">
-            <div class="font-bold text-xs text-[#3f6259] border-b border-[#c9bd97] pb-0.5 mb-1">🛡️ ${lm.name}</div>
-            ${lm.desc ? `<div class="text-[11px] text-[#4a4130] leading-snug">${lm.desc}</div>` : ''}
+        // Click / Touch popup (the back one with full details)
+        marker.bindPopup(`
+          <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
+            <div class="text-[11px] font-bold text-[#3f6259] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">🛡️ معلم / قلعة حدودية</div>
+            <div class="font-serif font-bold text-sm text-[#141c17]">${lm.name}</div>
+            ${lm.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${lm.desc}</div>` : ''}
           </div>
         `, {
-          direction: 'top',
+          className: 'historical-popup',
           offset: [0, -6],
-          className: 'historical-tooltip'
+          autoPan: true
         });
 
         landmarksLayerRef.current?.addLayer(marker);
@@ -241,47 +394,50 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     }
 
     // 6. Draw Capital Marker
-    if (capital) {
+    if (
+      capital &&
+      typeof capital.lat === 'number' &&
+      !isNaN(capital.lat) &&
+      isFinite(capital.lat) &&
+      typeof capital.lon === 'number' &&
+      !isNaN(capital.lon) &&
+      isFinite(capital.lon)
+    ) {
       const capMarker = L.marker([capital.lat, capital.lon], { icon: capitalIcon }).addTo(map);
 
       capMarker.bindPopup(`
-        <div dir="rtl" class="font-sans text-right p-1" style="white-space: normal; width: 210px; max-width: 230px;">
-          <div class="text-xs text-[#8a3b24] font-bold tracking-wide">👑 العاصمة المركزية</div>
-          <div class="font-serif font-bold text-base text-[#141c17] mt-0.5">${capital.name}</div>
+        <div dir="rtl" class="font-sans text-right p-0.5" style="white-space: normal; min-width: 180px; max-width: 230px;">
+          <div class="text-[11px] text-[#8a3b24] font-bold tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">👑 العاصمة المركزية</div>
+          <div class="font-serif font-bold text-base text-[#141c17]">${capital.name}</div>
           ${capital.description ? `<div class="text-xs text-[#4a4130] mt-1.5 leading-relaxed">${capital.description}</div>` : ''}
         </div>
       `, {
         className: 'historical-popup',
-        offset: [0, -10]
-      });
-
-      capMarker.bindTooltip(`
-        <div dir="rtl" class="font-sans font-bold text-xs text-[#8a3b24] text-right" style="white-space: normal;">
-          👑 ${capital.name}
-        </div>
-      `, {
-        direction: 'top',
-        offset: [0, -16],
-        className: 'historical-tooltip'
+        offset: [0, -10],
+        autoPan: true
       });
 
       capitalMarkerRef.current = capMarker;
       boundsPoints.push([capital.lat, capital.lon]);
     }
 
-    // 7. Smoothly fly map camera to bound all territorial extents
-    if (boundsPoints.length > 1) {
-      const bounds = L.latLngBounds(boundsPoints);
-      if (bounds.isValid()) {
-        map.invalidateSize();
-        map.flyToBounds(bounds, {
-          padding: [45, 45],
-          duration: 0.9,
-          maxZoom: 7
-        });
-      }
-    } else if (capital) {
-      map.flyTo([capital.lat, capital.lon], 6, { duration: 0.9 });
+    // 7. Smoothly fly map camera to bound all territorial extents safely
+    const fallbackCenter: [number, number] = (capital && !isNaN(capital.lat) && !isNaN(capital.lon))
+      ? [capital.lat, capital.lon]
+      : [26.8, 30.8];
+
+    const currentMapSize = map.getSize();
+    if (!currentMapSize || currentMapSize.x <= 100 || currentMapSize.y <= 100) {
+      // Container layout might not have settled yet; wait a frame
+      const frameTimer = setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+          safeFlyToBounds(mapInstanceRef.current, boundsPoints, fallbackCenter);
+        }
+      }, 120);
+      return () => clearTimeout(frameTimer);
+    } else {
+      safeFlyToBounds(map, boundsPoints, fallbackCenter);
     }
 
   }, [currentSlide, showFrontierLandmarks]);
@@ -323,22 +479,38 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const boundsPoints: L.LatLngExpression[] = [];
+    const boundsPoints: [number, number][] = [];
     if (currentSlide.extent?.core) {
-      currentSlide.extent.core.forEach(p => boundsPoints.push(p));
+      currentSlide.extent.core.forEach(p => {
+        if (Array.isArray(p) && p.length >= 2 && !isNaN(p[0]) && isFinite(p[0]) && !isNaN(p[1]) && isFinite(p[1])) {
+          boundsPoints.push([p[0], p[1]]);
+        }
+      });
     }
     if (currentSlide.extent?.secondary) {
-      currentSlide.extent.secondary.forEach(p => boundsPoints.push(p));
+      currentSlide.extent.secondary.forEach(p => {
+        if (Array.isArray(p) && p.length >= 2 && !isNaN(p[0]) && isFinite(p[0]) && !isNaN(p[1]) && isFinite(p[1])) {
+          boundsPoints.push([p[0], p[1]]);
+        }
+      });
     }
-    if (currentSlide.capital) {
+    if (
+      currentSlide.capital &&
+      typeof currentSlide.capital.lat === 'number' &&
+      !isNaN(currentSlide.capital.lat) &&
+      isFinite(currentSlide.capital.lat) &&
+      typeof currentSlide.capital.lon === 'number' &&
+      !isNaN(currentSlide.capital.lon) &&
+      isFinite(currentSlide.capital.lon)
+    ) {
       boundsPoints.push([currentSlide.capital.lat, currentSlide.capital.lon]);
     }
 
-    if (boundsPoints.length > 1) {
-      map.flyToBounds(L.latLngBounds(boundsPoints), { padding: [40, 40], duration: 0.8 });
-    } else {
-      map.flyTo([26.8, 30.8], 5, { duration: 0.8 });
-    }
+    const fallback: [number, number] = (currentSlide.capital && !isNaN(currentSlide.capital.lat) && !isNaN(currentSlide.capital.lon))
+      ? [currentSlide.capital.lat, currentSlide.capital.lon]
+      : [26.8, 30.8];
+
+    safeFlyToBounds(map, boundsPoints, fallback);
   };
 
   return (

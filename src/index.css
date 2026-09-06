@@ -27,8 +27,20 @@ h1, h2, h3, h4, .font-serif {
 
 /* Leaflet Customizations for Parchment Vintage look */
 #historical-leaflet-map,
-.leaflet-container {
+.leaflet-container,
+.leaflet-pane,
+.leaflet-map-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
   direction: ltr !important; /* Critical: Leaflet internal geometry requires LTR to prevent tile/tooltip inverted offsets */
+  text-align: left;
 }
 
 .leaflet-popup-content-wrapper {
@@ -42,41 +54,82 @@ h1, h2, h3, h4, .font-serif {
   text-align: right !important;
 }
 
+.leaflet-popup-content {
+  margin: 10px 14px !important;
+  line-height: 1.5 !important;
+  direction: rtl !important;
+  text-align: right !important;
+}
+
 .leaflet-popup-tip {
   background: #fbf7ee !important;
 }
 
-.leaflet-tooltip.historical-tooltip {
-  background: #fbf7ee !important;
-  border: 1px solid #a9863f !important;
-  color: #241d12 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28) !important;
-  border-radius: 6px !important;
-  direction: rtl !important;
-  text-align: right !important;
-  white-space: normal !important; /* Prevents text from stretching into a single endless line */
+.leaflet-container a.leaflet-popup-close-button {
+  top: 6px !important;
+  left: 8px !important;
+  right: auto !important;
+  color: #8a3b24 !important;
+  font-size: 16px !important;
+  padding: 2px !important;
+}
+
+/* Ensure ALL tooltips in Leaflet wrap text and do not stretch indefinitely */
+.leaflet-tooltip {
+  white-space: normal !important;
+  word-break: normal !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
-  max-width: 230px !important;
-  min-width: 120px !important;
-  width: max-content !important;
-  padding: 8px 10px !important;
+  box-sizing: border-box !important;
+}
+
+.leaflet-tooltip.historical-tooltip {
+  background: #fbf7ee !important;
+  border: 1.5px solid #8a3b24 !important;
+  color: #241d12 !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28) !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
   font-family: 'Tajawal', sans-serif !important;
   font-size: 12px !important;
+  line-height: 1.45 !important;
+  max-width: 210px !important;
+  min-width: 120px !important;
+  width: max-content !important;
+  box-sizing: border-box !important;
+  direction: ltr !important; /* Keep outer element LTR so Leaflet transforms calculate exactly */
+}
+
+/* Inner content is cleanly formatted RTL */
+.leaflet-tooltip.historical-tooltip .historical-tooltip-content,
+.leaflet-tooltip.historical-tooltip > div {
+  direction: rtl !important;
+  text-align: right !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
   line-height: 1.45 !important;
 }
 
 .leaflet-tooltip-top.historical-tooltip::before {
-  border-top-color: #fbf7ee !important;
+  border-top-color: #8a3b24 !important;
 }
 .leaflet-tooltip-bottom.historical-tooltip::before {
-  border-bottom-color: #fbf7ee !important;
+  border-bottom-color: #8a3b24 !important;
 }
 .leaflet-tooltip-left.historical-tooltip::before {
-  border-left-color: #fbf7ee !important;
+  border-left-color: #8a3b24 !important;
 }
 .leaflet-tooltip-right.historical-tooltip::before {
-  border-right-color: #fbf7ee !important;
+  border-right-color: #8a3b24 !important;
+}
+
+@media (max-width: 640px) {
+  .leaflet-tooltip.historical-tooltip {
+    max-width: 180px !important;
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+  }
 }
 
 /* Subtle scrollbars */
