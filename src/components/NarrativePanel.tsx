@@ -1,51 +1,144 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SlideData } from '../types';
-import { Shield, BookOpen, Landmark, Calendar, MapPin, ExternalLink, Sparkles } from 'lucide-react';
+import { Shield, BookOpen, Landmark, Calendar, MapPin, ExternalLink, Sparkles, TrendingUp, BarChart3, FileText } from 'lucide-react';
+import { HistoricalDataPanel } from './HistoricalDataPanel';
+import { getStatBySlideId } from '../data/eraStatistics';
 
 interface NarrativePanelProps {
   slide: SlideData;
   onSelectCapital?: () => void;
+  onSelectSlideIndex?: (index: number) => void;
+  activeTab?: 'narrative' | 'statistics';
+  onTabChange?: (tab: 'narrative' | 'statistics') => void;
 }
 
 export const NarrativePanel: React.FC<NarrativePanelProps> = ({
-  slide
+  slide,
+  onSelectCapital,
+  onSelectSlideIndex,
+  activeTab: controlledTab,
+  onTabChange
 }) => {
+  const [localTab, setLocalTab] = useState<'narrative' | 'statistics'>('narrative');
+  const currentTab = controlledTab !== undefined ? controlledTab : localTab;
+
+  const handleTabSelect = (tab: 'narrative' | 'statistics') => {
+    if (onTabChange) {
+      onTabChange(tab);
+    } else {
+      setLocalTab(tab);
+    }
+  };
+
+  const currentEraStat = getStatBySlideId(slide.id);
+
   return (
     <div
       id="narrative-scroll-panel"
-      className="h-full overflow-y-auto bg-[#e9e0c7] text-[#241d12] p-6 md:p-8 relative shadow-inner select-text"
+      className="h-full overflow-y-auto bg-[#e9e0c7] text-[#241d12] p-5 md:p-7 relative shadow-inner select-text"
       style={{
         boxShadow: 'inset 0 0 40px rgba(90, 70, 30, 0.12)'
       }}
     >
-      {/* Era metadata header */}
-      <div className="mb-4">
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          {slide.categoryLabel && (
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-[#3f6259]/15 text-[#3f6259] border border-[#3f6259]/30">
-              {slide.categoryLabel}
+      {/* Top Switcher Tabs: Narrative vs Recharts Data Panel */}
+      <div className="flex items-center justify-between border-b border-[#a9863f]/40 pb-2 mb-4">
+        <div className="flex items-center gap-1.5 bg-[#ddd3b7]/60 p-1 rounded-lg border border-[#c9bd97]">
+          <button
+            id="tab-narrative"
+            type="button"
+            onClick={() => handleTabSelect('narrative')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+              currentTab === 'narrative'
+                ? 'bg-[#1c261f] text-[#e9e0c7] shadow-sm'
+                : 'text-[#3c3324] hover:text-[#141c17] hover:bg-[#c9bd97]/50'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>السرد والحدود</span>
+          </button>
+
+          <button
+            id="tab-statistics"
+            type="button"
+            onClick={() => handleTabSelect('statistics')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+              currentTab === 'statistics'
+                ? 'bg-[#8a3b24] text-white shadow-sm'
+                : 'text-[#3c3324] hover:text-[#141c17] hover:bg-[#c9bd97]/50'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>لوحة البيانات (Recharts)</span>
+            <span className="text-[10px] bg-[#141c17]/30 text-white px-1.5 py-0.2 rounded font-mono">
+              {currentEraStat.estimatedAreaKm2 >= 1000000
+                ? `${(currentEraStat.estimatedAreaKm2 / 1000000).toFixed(1)}M`
+                : `${Math.round(currentEraStat.estimatedAreaKm2 / 1000)}k`}
             </span>
-          )}
-          {slide.date && (
-            <span className="text-xs font-bold text-[#8a3b24] flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>{slide.date}</span>
-            </span>
-          )}
+          </button>
         </div>
 
-        <h1 className="font-serif font-bold text-2xl md:text-3xl text-[#141c17] leading-snug border-b-2 border-[#a9863f] pb-3">
-          {slide.headline}
-        </h1>
-
-        {slide.capital && (
-          <div className="mt-3 inline-flex items-center gap-2 bg-[#3f6259]/10 border border-[#3f6259]/30 rounded px-3 py-1.5 text-xs text-[#2a443e]">
-            <MapPin className="w-4 h-4 text-[#8a3b24] shrink-0" />
-            <span className="font-medium">العاصمة والقلب الإداري:</span>
-            <span className="font-serif font-bold text-sm text-[#141c17]">{slide.capital.name}</span>
-          </div>
-        )}
+        {/* Quick hint for the user */}
+        <span className="text-[11px] text-[#63563f] hidden sm:inline font-medium">
+          الحقبة {slide.id} من 18
+        </span>
       </div>
+
+      {/* VIEW 1: Recharts Data Panel View */}
+      {currentTab === 'statistics' ? (
+        <HistoricalDataPanel
+          currentSlideId={slide.id}
+          onSelectEra={(slideIdx) => {
+            if (onSelectSlideIndex) {
+              onSelectSlideIndex(slideIdx);
+            }
+          }}
+        />
+      ) : (
+        /* VIEW 2: Primary Historical Narrative & Border Details */
+        <>
+          {/* Era metadata header */}
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {slide.categoryLabel && (
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-[#3f6259]/15 text-[#3f6259] border border-[#3f6259]/30">
+                  {slide.categoryLabel}
+                </span>
+              )}
+              {slide.date && (
+                <span className="text-xs font-bold text-[#8a3b24] flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{slide.date}</span>
+                </span>
+              )}
+            </div>
+
+            <h1 className="font-serif font-bold text-2xl md:text-3xl text-[#141c17] leading-snug border-b-2 border-[#a9863f] pb-3">
+              {slide.headline}
+            </h1>
+
+            {/* Quick Metadata: Capital & Interactive Area Pill */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {slide.capital && (
+                <div className="inline-flex items-center gap-2 bg-[#3f6259]/10 border border-[#3f6259]/30 rounded px-3 py-1.5 text-xs text-[#2a443e]">
+                  <MapPin className="w-4 h-4 text-[#8a3b24] shrink-0" />
+                  <span className="font-medium">العاصمة والقلب الإداري:</span>
+                  <span className="font-serif font-bold text-sm text-[#141c17]">{slide.capital.name}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                id="narrative-area-shortcut-btn"
+                onClick={() => handleTabSelect('statistics')}
+                className="inline-flex items-center gap-1.5 bg-[#8a3b24]/10 hover:bg-[#8a3b24]/20 border border-[#8a3b24]/30 rounded px-3 py-1.5 text-xs text-[#8a3b24] font-medium transition-colors cursor-pointer"
+                title="انقر لعرض المخطط البياني في لوحة البيانات (Recharts)"
+              >
+                <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+                <span>المساحة: <strong>{currentEraStat.estimatedAreaKm2 >= 1000000 ? `${(currentEraStat.estimatedAreaKm2 / 1000000).toFixed(2)} مليون كم²` : `${currentEraStat.estimatedAreaKm2.toLocaleString('ar-EG')} كم²`}</strong></span>
+                <span className="text-[10px] text-[#8a3b24] underline">مخطط البيانات ›</span>
+              </button>
+            </div>
+          </div>
 
       {/* Media figure (if present) */}
       {slide.media?.url && (
@@ -163,6 +256,8 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
             ))}
           </ul>
         </div>
+      )}
+        </>
       )}
     </div>
   );

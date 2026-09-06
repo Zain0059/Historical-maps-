@@ -14,6 +14,7 @@ export default function App() {
   const [showLegend, setShowLegend] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<PeriodCategory | 'all'>('all');
+  const [narrativeTab, setNarrativeTab] = useState<'narrative' | 'statistics'>('narrative');
 
   const currentSlide = ALL_SLIDES[currentIndex];
 
@@ -68,6 +69,8 @@ export default function App() {
         onToggleLegend={() => setShowLegend(prev => !prev)}
         selectedCategory={selectedCategory}
         onSelectCategory={handleSelectCategory}
+        showDataPanel={narrativeTab === 'statistics'}
+        onToggleDataPanel={() => setNarrativeTab(prev => prev === 'statistics' ? 'narrative' : 'statistics')}
       />
 
       {/* Main split: Map and Historical Narrative Panel */}
@@ -77,7 +80,12 @@ export default function App() {
           id="narrative-section"
           className="flex-1 md:flex-initial md:w-[42%] lg:w-[40%] xl:w-[38%] min-w-[320px] max-w-[580px] h-full overflow-hidden border-b md:border-b-0 md:border-l border-[#a9863f]/30 z-10"
         >
-          <NarrativePanel slide={currentSlide} />
+          <NarrativePanel
+            slide={currentSlide}
+            activeTab={narrativeTab}
+            onTabChange={setNarrativeTab}
+            onSelectSlideIndex={(idx) => setCurrentIndex(idx)}
+          />
         </section>
 
         {/* Left side in RTL (Right visually): Interactive Atlas Map */}

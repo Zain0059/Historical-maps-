@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, List, Map, Compass } from 'lucide-react';
+import { Layers, List, Map, Compass, TrendingUp } from 'lucide-react';
 import { PeriodCategory } from '../types';
 
 interface HeaderProps {
@@ -12,6 +12,8 @@ interface HeaderProps {
   onToggleLegend: () => void;
   selectedCategory: string;
   onSelectCategory: (cat: PeriodCategory | 'all') => void;
+  showDataPanel?: boolean;
+  onToggleDataPanel?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,7 +25,9 @@ export const Header: React.FC<HeaderProps> = ({
   showLegend,
   onToggleLegend,
   selectedCategory,
-  onSelectCategory
+  onSelectCategory,
+  showDataPanel,
+  onToggleDataPanel
 }) => {
   const categories: { id: PeriodCategory | 'all'; label: string }[] = [
     { id: 'all', label: 'كافة الحقب' },
@@ -86,6 +90,24 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">مقارنة الحدود المعاصرة</span>
             <span className="sm:hidden">مقارنة</span>
           </button>
+
+          {/* Toggle Recharts Data Panel Button */}
+          {onToggleDataPanel && (
+            <button
+              id="hdr-data-panel-btn"
+              onClick={onToggleDataPanel}
+              title={showDataPanel ? 'العودة إلى السرد التاريخي' : 'عرض لوحة البيانات والمساحة (Recharts)'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
+                showDataPanel
+                  ? 'bg-[#8a3b24] border-[#f59e0b] text-white shadow-sm font-bold'
+                  : 'bg-[#1c261f] border-[#a9863f]/40 text-[#d9cfae] hover:bg-[#2a382e]'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-[#f2b880]" />
+              <span className="hidden sm:inline">لوحة البيانات (Recharts)</span>
+              <span className="sm:hidden">بيانات</span>
+            </button>
+          )}
 
           {/* Toggle Map Legend Button */}
           <button

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { motion, AnimatePresence } from 'motion/react';
 import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
 import { MODERN_EGYPT_BORDER } from '../data/modernEgyptBorder';
 import { Layers, Eye, Compass, Maximize2, X } from 'lucide-react';
@@ -149,6 +150,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   const capitalMarkerRef = useRef<L.Marker | null>(null);
   const modernBorderLayerRef = useRef<L.Polygon | null>(null);
 
+  // Transition refs for smooth CSS fade-in/out layer updates
+  const isInitialRenderRef = useRef<boolean>(true);
+  const eraTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eraFadeInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -174,6 +181,18 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19
     }).addTo(map);
+
+    // Dedicated panes for historical era layers with CSS transition support
+    const historicalOverlayPane = map.createPane('historicalOverlayPane');
+    historicalOverlayPane.style.zIndex = '450';
+    historicalOverlayPane.classList.add('historical-layer-fade', 'era-fade-in');
+
+    const historicalMarkerPane = map.createPane('historicalMarkerPane');
+    historicalMarkerPane.style.zIndex = '620';
+    historicalMarkerPane.classList.add('historical-layer-fade', 'era-fade-in');
+
+    const modernBorderPane = map.createPane('modernBorderPane');
+    modernBorderPane.style.zIndex = '480';
 
     outpostsLayerRef.current = L.layerGroup().addTo(map);
     landmarksLayerRef.current = L.layerGroup().addTo(map);
@@ -212,233 +231,294 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     };
   }, []);
 
-  // Update map features whenever currentSlide changes
+  // Update map features whenever currentSlide changes with smooth CSS transition fade-in/out
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // 1. Clear previous layers
-    if (coreLayerRef.current) {
-      map.removeLayer(coreLayerRef.current);
-      coreLayerRef.current = null;
-    }
-    if (secondaryLayerRef.current) {
-      map.removeLayer(secondaryLayerRef.current);
-      secondaryLayerRef.current = null;
-    }
-    if (capitalMarkerRef.current) {
-      map.removeLayer(capitalMarkerRef.current);
-      capitalMarkerRef.current = null;
-    }
-    if (outpostsLayerRef.current) {
-      outpostsLayerRef.current.clearLayers();
-    }
-    if (landmarksLayerRef.current) {
-      landmarksLayerRef.current.clearLayers();
-    }
+    const overlayPane = map.getPane('historicalOverlayPane') || map.getPane('overlayPane');
+    const markerPane = map.getPane('historicalMarkerPane') || map.getPane('markerPane');
 
-    const extent = currentSlide.extent;
-    const capital = currentSlide.capital;
-    const boundsPoints: [number, number][] = [];
+    // Function to clear old layers and mount the new era features
+    const renderEraFeatures = () => {
+      // 1. Clear previous layers
+      if (coreLayerRef.current) {
+        map.removeLayer(coreLayerRef.current);
+        coreLayerRef.current = null;
+      }
+      if (secondaryLayerRef.current) {
+        map.removeLayer(secondaryLayerRef.current);
+        secondaryLayerRef.current = null;
+      }
+      if (capitalMarkerRef.current) {
+        map.removeLayer(capitalMarkerRef.current);
+        capitalMarkerRef.current = null;
+      }
+      if (outpostsLayerRef.current) {
+        outpostsLayerRef.current.clearLayers();
+      }
+      if (landmarksLayerRef.current) {
+        landmarksLayerRef.current.clearLayers();
+      }
 
-    // Custom icons
-    const capitalIcon = L.divIcon({
-      className: 'capital-pin-marker',
-      html: `
-        <div class="relative flex items-center justify-center">
-          <span class="absolute w-8 h-8 rounded-full bg-[#8a3b24] opacity-35 animate-ping"></span>
-          <div class="w-6 h-6 rounded-full bg-[#8a3b24] border-2 border-[#e9e0c7] shadow-lg flex items-center justify-center text-white text-[11px] font-bold">
-            ★
+      const extent = currentSlide.extent;
+      const capital = currentSlide.capital;
+      const boundsPoints: [number, number][] = [];
+
+      // Custom Capital Icon with multi-ring Pulse ripple effect & entrance highlight
+      const capitalIcon = L.divIcon({
+        className: 'capital-pin-marker',
+        html: `
+          <div class="capital-pin-wrapper relative flex flex-col items-center justify-center cursor-pointer select-none" style="width: 30px; height: 30px;">
+            <!-- Outer Concentric Pulse Waves -->
+            <div class="capital-pulse-ring capital-pulse-ring-1"></div>
+            <div class="capital-pulse-ring capital-pulse-ring-2"></div>
+            <div class="capital-pulse-ring capital-pulse-ring-3"></div>
+
+            <!-- Core Pulsing Capital Pin -->
+            <div class="capital-core-pin relative z-20 w-7 h-7 rounded-full bg-gradient-to-br from-[#ba4f33] via-[#8a3b24] to-[#5c2415] border-2 border-[#fcedc7] shadow-xl flex items-center justify-center text-[#fcedc7] text-xs font-bold">
+              ★
+            </div>
+
+            <!-- Capital City Tag -->
+            <div class="absolute top-8 left-1/2 -translate-x-1/2 z-20 px-2 py-0.5 rounded-full bg-[#1c261f]/95 text-[#fcedc7] border border-[#a9863f]/70 text-[10px] font-serif font-bold shadow-lg whitespace-nowrap leading-none tracking-wide pointer-events-none">
+              👑 ${capital ? capital.name : ''}
+            </div>
           </div>
-        </div>
-      `,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
-    });
+        `,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
 
-    // 2. Draw Core Polygon (Red-ochre #8a3b24)
-    if (extent?.core && Array.isArray(extent.core) && extent.core.length > 0) {
-      const validCore = extent.core.filter(
-        pt => Array.isArray(pt) && pt.length >= 2 && !isNaN(pt[0]) && isFinite(pt[0]) && !isNaN(pt[1]) && isFinite(pt[1])
-      ) as [number, number][];
+      // 2. Draw Core Polygon (Red-ochre #8a3b24) with historical overlay pane
+      if (extent?.core && Array.isArray(extent.core) && extent.core.length > 0) {
+        const validCore = extent.core.filter(
+          pt => Array.isArray(pt) && pt.length >= 2 && !isNaN(pt[0]) && isFinite(pt[0]) && !isNaN(pt[1]) && isFinite(pt[1])
+        ) as [number, number][];
 
-      if (validCore.length > 0) {
-        const corePoly = L.polygon(validCore, {
-          color: '#8a3b24',
-          weight: 2.5,
-          fillColor: '#8a3b24',
-          fillOpacity: 0.22,
-          lineCap: 'round',
-          lineJoin: 'round'
-        }).addTo(map);
+        if (validCore.length > 0) {
+          const corePoly = L.polygon(validCore, {
+            pane: 'historicalOverlayPane',
+            color: '#8a3b24',
+            weight: 2.5,
+            fillColor: '#8a3b24',
+            fillOpacity: 0.22,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(map);
 
-        const label = extent.coreLabel || 'الحدود السيادية الأساسية';
-        corePoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#8a3b24] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
-          sticky: true,
-          direction: 'top',
-          className: 'historical-tooltip'
-        });
+          const label = extent.coreLabel || 'الحدود السيادية الأساسية';
+          corePoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#8a3b24] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
+            sticky: true,
+            direction: 'top',
+            className: 'historical-tooltip'
+          });
 
-        coreLayerRef.current = corePoly;
-        validCore.forEach(pt => boundsPoints.push(pt));
-      }
-    }
-
-    // 3. Draw Secondary Polygon (Verdigris #3f6259 dashed)
-    if (extent?.secondary && Array.isArray(extent.secondary) && extent.secondary.length > 0) {
-      const validSec = extent.secondary.filter(
-        pt => Array.isArray(pt) && pt.length >= 2 && !isNaN(pt[0]) && isFinite(pt[0]) && !isNaN(pt[1]) && isFinite(pt[1])
-      ) as [number, number][];
-
-      if (validSec.length > 0) {
-        const secPoly = L.polygon(validSec, {
-          color: '#3f6259',
-          weight: 2,
-          dashArray: '6, 6',
-          fillColor: '#3f6259',
-          fillOpacity: 0.18,
-          lineCap: 'round',
-          lineJoin: 'round'
-        }).addTo(map);
-
-        const label = extent.secondaryLabel || 'إقليم تابع / نفوذ إقليمي';
-        secPoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#3f6259] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
-          sticky: true,
-          direction: 'top',
-          className: 'historical-tooltip'
-        });
-
-        secondaryLayerRef.current = secPoly;
-        validSec.forEach(pt => boundsPoints.push(pt));
-      }
-    }
-
-    // 4. Draw Outposts (Golden dots #a9863f)
-    if (extent?.outposts && extent.outposts.length > 0 && outpostsLayerRef.current) {
-      extent.outposts.forEach((outpost: OutpostPoint) => {
-        if (
-          typeof outpost.lat !== 'number' ||
-          isNaN(outpost.lat) ||
-          !isFinite(outpost.lat) ||
-          typeof outpost.lon !== 'number' ||
-          isNaN(outpost.lon) ||
-          !isFinite(outpost.lon)
-        ) {
-          return;
+          coreLayerRef.current = corePoly;
+          validCore.forEach(pt => boundsPoints.push(pt));
         }
+      }
 
-        const marker = L.circleMarker([outpost.lat, outpost.lon], {
-          radius: 6,
-          color: '#a9863f',
-          weight: 2,
-          fillColor: '#f7f4ea',
-          fillOpacity: 1
+      // 3. Draw Secondary Polygon (Verdigris #3f6259 dashed) with historical overlay pane
+      if (extent?.secondary && Array.isArray(extent.secondary) && extent.secondary.length > 0) {
+        const validSec = extent.secondary.filter(
+          pt => Array.isArray(pt) && pt.length >= 2 && !isNaN(pt[0]) && isFinite(pt[0]) && !isNaN(pt[1]) && isFinite(pt[1])
+        ) as [number, number][];
+
+        if (validSec.length > 0) {
+          const secPoly = L.polygon(validSec, {
+            pane: 'historicalOverlayPane',
+            color: '#3f6259',
+            weight: 2,
+            dashArray: '6, 6',
+            fillColor: '#3f6259',
+            fillOpacity: 0.18,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(map);
+
+          const label = extent.secondaryLabel || 'إقليم تابع / نفوذ إقليمي';
+          secPoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#3f6259] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
+            sticky: true,
+            direction: 'top',
+            className: 'historical-tooltip'
+          });
+
+          secondaryLayerRef.current = secPoly;
+          validSec.forEach(pt => boundsPoints.push(pt));
+        }
+      }
+
+      // 4. Draw Outposts (Golden dots #a9863f)
+      if (extent?.outposts && extent.outposts.length > 0 && outpostsLayerRef.current) {
+        extent.outposts.forEach((outpost: OutpostPoint) => {
+          if (
+            typeof outpost.lat !== 'number' ||
+            isNaN(outpost.lat) ||
+            !isFinite(outpost.lat) ||
+            typeof outpost.lon !== 'number' ||
+            isNaN(outpost.lon) ||
+            !isFinite(outpost.lon)
+          ) {
+            return;
+          }
+
+          const marker = L.circleMarker([outpost.lat, outpost.lon], {
+            pane: 'historicalMarkerPane',
+            radius: 6,
+            color: '#a9863f',
+            weight: 2,
+            fillColor: '#f7f4ea',
+            fillOpacity: 1
+          });
+
+          marker.bindPopup(`
+            <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
+              <div class="text-[11px] font-bold text-[#8a3b24] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">📍 ثغر / محطة متقدمة</div>
+              <div class="font-serif font-bold text-sm text-[#141c17]">${outpost.name}</div>
+              ${outpost.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${outpost.desc}</div>` : ''}
+            </div>
+          `, {
+            className: 'historical-popup',
+            offset: [0, -8],
+            autoPan: true
+          });
+
+          outpostsLayerRef.current?.addLayer(marker);
+          boundsPoints.push([outpost.lat, outpost.lon]);
         });
+      }
 
-        // Click / Touch popup (the back one with full details)
-        marker.bindPopup(`
-          <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
-            <div class="text-[11px] font-bold text-[#8a3b24] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">📍 ثغر / محطة متقدمة</div>
-            <div class="font-serif font-bold text-sm text-[#141c17]">${outpost.name}</div>
-            ${outpost.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${outpost.desc}</div>` : ''}
+      // 5. Draw Frontier Landmarks (if enabled)
+      if (showFrontierLandmarks && extent?.frontierLandmarks && landmarksLayerRef.current) {
+        extent.frontierLandmarks.forEach((lm: FrontierLandmark) => {
+          if (
+            typeof lm.lat !== 'number' ||
+            isNaN(lm.lat) ||
+            !isFinite(lm.lat) ||
+            typeof lm.lon !== 'number' ||
+            isNaN(lm.lon) ||
+            !isFinite(lm.lon)
+          ) {
+            return;
+          }
+
+          const marker = L.circleMarker([lm.lat, lm.lon], {
+            pane: 'historicalMarkerPane',
+            radius: 5,
+            color: '#2a443e',
+            weight: 2,
+            fillColor: '#7d9992',
+            fillOpacity: 0.85
+          });
+
+          marker.bindPopup(`
+            <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
+              <div class="text-[11px] font-bold text-[#3f6259] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">🛡️ معلم / قلعة حدودية</div>
+              <div class="font-serif font-bold text-sm text-[#141c17]">${lm.name}</div>
+              ${lm.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${lm.desc}</div>` : ''}
+            </div>
+          `, {
+            className: 'historical-popup',
+            offset: [0, -6],
+            autoPan: true
+          });
+
+          landmarksLayerRef.current?.addLayer(marker);
+          boundsPoints.push([lm.lat, lm.lon]);
+        });
+      }
+
+      // 6. Draw Capital Marker
+      if (
+        capital &&
+        typeof capital.lat === 'number' &&
+        !isNaN(capital.lat) &&
+        isFinite(capital.lat) &&
+        typeof capital.lon === 'number' &&
+        !isNaN(capital.lon) &&
+        isFinite(capital.lon)
+      ) {
+        const capMarker = L.marker([capital.lat, capital.lon], {
+          pane: 'historicalMarkerPane',
+          icon: capitalIcon
+        }).addTo(map);
+
+        capMarker.bindPopup(`
+          <div dir="rtl" class="font-sans text-right p-0.5" style="white-space: normal; min-width: 180px; max-width: 230px;">
+            <div class="text-[11px] text-[#8a3b24] font-bold tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">👑 العاصمة المركزية</div>
+            <div class="font-serif font-bold text-base text-[#141c17]">${capital.name}</div>
+            ${capital.description ? `<div class="text-xs text-[#4a4130] mt-1.5 leading-relaxed">${capital.description}</div>` : ''}
           </div>
         `, {
           className: 'historical-popup',
-          offset: [0, -8],
+          offset: [0, -18],
           autoPan: true
         });
 
-        outpostsLayerRef.current?.addLayer(marker);
-        boundsPoints.push([outpost.lat, outpost.lon]);
-      });
-    }
+        capitalMarkerRef.current = capMarker;
+        boundsPoints.push([capital.lat, capital.lon]);
+      }
 
-    // 5. Draw Frontier Landmarks (if enabled)
-    if (showFrontierLandmarks && extent?.frontierLandmarks && landmarksLayerRef.current) {
-      extent.frontierLandmarks.forEach((lm: FrontierLandmark) => {
-        if (
-          typeof lm.lat !== 'number' ||
-          isNaN(lm.lat) ||
-          !isFinite(lm.lat) ||
-          typeof lm.lon !== 'number' ||
-          isNaN(lm.lon) ||
-          !isFinite(lm.lon)
-        ) {
-          return;
+      // 7. Smoothly fly map camera to bound all territorial extents safely
+      const fallbackCenter: [number, number] = (capital && !isNaN(capital.lat) && !isNaN(capital.lon))
+        ? [capital.lat, capital.lon]
+        : [26.8, 30.8];
+
+      const currentMapSize = map.getSize();
+      if (!currentMapSize || currentMapSize.x <= 100 || currentMapSize.y <= 100) {
+        frameTimerRef.current = setTimeout(() => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+            safeFlyToBounds(mapInstanceRef.current, boundsPoints, fallbackCenter);
+          }
+        }, 120);
+      } else {
+        safeFlyToBounds(map, boundsPoints, fallbackCenter);
+      }
+
+      // Step 3: Trigger CSS transition fade-in for the new era layers
+      eraFadeInTimerRef.current = setTimeout(() => {
+        if (overlayPane) {
+          overlayPane.classList.remove('era-fade-out');
+          overlayPane.classList.add('era-fade-in');
+          overlayPane.style.opacity = '1';
         }
-
-        const marker = L.circleMarker([lm.lat, lm.lon], {
-          radius: 5,
-          color: '#2a443e',
-          weight: 2,
-          fillColor: '#7d9992',
-          fillOpacity: 0.85
-        });
-
-        // Click / Touch popup (the back one with full details)
-        marker.bindPopup(`
-          <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
-            <div class="text-[11px] font-bold text-[#3f6259] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">🛡️ معلم / قلعة حدودية</div>
-            <div class="font-serif font-bold text-sm text-[#141c17]">${lm.name}</div>
-            ${lm.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${lm.desc}</div>` : ''}
-          </div>
-        `, {
-          className: 'historical-popup',
-          offset: [0, -6],
-          autoPan: true
-        });
-
-        landmarksLayerRef.current?.addLayer(marker);
-        boundsPoints.push([lm.lat, lm.lon]);
-      });
-    }
-
-    // 6. Draw Capital Marker
-    if (
-      capital &&
-      typeof capital.lat === 'number' &&
-      !isNaN(capital.lat) &&
-      isFinite(capital.lat) &&
-      typeof capital.lon === 'number' &&
-      !isNaN(capital.lon) &&
-      isFinite(capital.lon)
-    ) {
-      const capMarker = L.marker([capital.lat, capital.lon], { icon: capitalIcon }).addTo(map);
-
-      capMarker.bindPopup(`
-        <div dir="rtl" class="font-sans text-right p-0.5" style="white-space: normal; min-width: 180px; max-width: 230px;">
-          <div class="text-[11px] text-[#8a3b24] font-bold tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">👑 العاصمة المركزية</div>
-          <div class="font-serif font-bold text-base text-[#141c17]">${capital.name}</div>
-          ${capital.description ? `<div class="text-xs text-[#4a4130] mt-1.5 leading-relaxed">${capital.description}</div>` : ''}
-        </div>
-      `, {
-        className: 'historical-popup',
-        offset: [0, -10],
-        autoPan: true
-      });
-
-      capitalMarkerRef.current = capMarker;
-      boundsPoints.push([capital.lat, capital.lon]);
-    }
-
-    // 7. Smoothly fly map camera to bound all territorial extents safely
-    const fallbackCenter: [number, number] = (capital && !isNaN(capital.lat) && !isNaN(capital.lon))
-      ? [capital.lat, capital.lon]
-      : [26.8, 30.8];
-
-    const currentMapSize = map.getSize();
-    if (!currentMapSize || currentMapSize.x <= 100 || currentMapSize.y <= 100) {
-      // Container layout might not have settled yet; wait a frame
-      const frameTimer = setTimeout(() => {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.invalidateSize();
-          safeFlyToBounds(mapInstanceRef.current, boundsPoints, fallbackCenter);
+        if (markerPane) {
+          markerPane.classList.remove('era-fade-out');
+          markerPane.classList.add('era-fade-in');
+          markerPane.style.opacity = '1';
         }
-      }, 120);
-      return () => clearTimeout(frameTimer);
+      }, 50);
+    };
+
+    if (isInitialRenderRef.current) {
+      isInitialRenderRef.current = false;
+      renderEraFeatures();
     } else {
-      safeFlyToBounds(map, boundsPoints, fallbackCenter);
+      // Step 1: Smoothly fade out previous era layers using CSS transition
+      if (overlayPane) {
+        overlayPane.classList.remove('era-fade-in');
+        overlayPane.classList.add('era-fade-out');
+        overlayPane.style.opacity = '0';
+      }
+      if (markerPane) {
+        markerPane.classList.remove('era-fade-in');
+        markerPane.classList.add('era-fade-out');
+        markerPane.style.opacity = '0';
+      }
+
+      // Step 2: After CSS transition fade-out duration (220ms), switch layers and initiate CSS fade-in
+      eraTransitionTimerRef.current = setTimeout(() => {
+        renderEraFeatures();
+      }, 220);
     }
+
+    return () => {
+      if (eraTransitionTimerRef.current) clearTimeout(eraTransitionTimerRef.current);
+      if (eraFadeInTimerRef.current) clearTimeout(eraFadeInTimerRef.current);
+      if (frameTimerRef.current) clearTimeout(frameTimerRef.current);
+    };
 
   }, [currentSlide, showFrontierLandmarks]);
 
@@ -450,6 +530,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     if (showModernBorder) {
       if (!modernBorderLayerRef.current) {
         const poly = L.polygon(MODERN_EGYPT_BORDER, {
+          pane: 'modernBorderPane',
           color: '#0d9488',
           weight: 2,
           dashArray: '4, 6',
@@ -514,7 +595,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[350px]">
+    <div className="relative w-full h-full min-h-[350px] overflow-hidden">
       {/* Map Container */}
       <div
         ref={mapContainerRef}
@@ -522,6 +603,18 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         dir="ltr"
         className="w-full h-full z-0"
       />
+
+      {/* Atmospheric Era Transition Veil (Fade-in/Fade-out between historical eras) */}
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={`era-fade-${currentSlide.id}`}
+          initial={{ opacity: 0.5 }}
+          animate={{ opacity: 0 }}
+          exit={{ opacity: 0.5 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none absolute inset-0 bg-[#141c17]/35 z-[25] backdrop-blur-[1px]"
+        />
+      </AnimatePresence>
 
       {/* Floating Legend & Map Controls Bar */}
       {!showLegend ? (

@@ -74,6 +74,34 @@ h1, h2, h3, h4, .font-serif {
   padding: 2px !important;
 }
 
+/* Smooth fade transition for Leaflet historical layers during era shifts */
+.leaflet-overlay-pane,
+.leaflet-marker-pane,
+.historical-layer-fade {
+  transition: opacity 380ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  will-change: opacity;
+}
+
+.historical-layer-fade.era-fade-out {
+  opacity: 0 !important;
+}
+
+.historical-layer-fade.era-fade-in {
+  opacity: 1 !important;
+}
+
+/* Smooth transitions on SVG vector paths inside historical layers */
+.historical-layer-fade svg,
+.historical-layer-fade path {
+  transition: stroke 350ms ease, fill 350ms ease, fill-opacity 350ms ease, opacity 350ms ease !important;
+}
+
+/* Smooth transitions on div icons and markers */
+.historical-layer-fade .leaflet-marker-icon,
+.historical-layer-fade .capital-pin-marker {
+  transition: opacity 350ms ease, transform 350ms ease !important;
+}
+
 /* Ensure ALL tooltips in Leaflet wrap text and do not stretch indefinitely */
 .leaflet-tooltip {
   white-space: normal !important;
@@ -147,3 +175,183 @@ h1, h2, h3, h4, .font-serif {
 ::-webkit-scrollbar-thumb:hover {
   background: #8a3b24;
 }
+
+/* Custom historical timeline scrubber slider */
+.timeline-scrubber-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.timeline-scrubber-slider:focus {
+  outline: none;
+}
+
+/* Chrome, Safari, Edge, Opera */
+.timeline-scrubber-slider::-webkit-slider-runnable-track {
+  height: 7px;
+  border-radius: 9999px;
+  background: #233127;
+  border: 1px solid rgba(169, 134, 63, 0.4);
+  transition: all 150ms ease;
+}
+
+.timeline-scrubber-slider:hover::-webkit-slider-runnable-track {
+  border-color: rgba(169, 134, 63, 0.75);
+  background: #2b3d30;
+}
+
+.timeline-scrubber-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6.5px;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #8a3b24;
+  border: 2px solid #f2b880;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(138, 59, 36, 0.4);
+  cursor: grab;
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+
+.timeline-scrubber-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.2);
+  background: #a0452b;
+  border-color: #ffd29d;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.75), 0 0 10px rgba(242, 184, 128, 0.6);
+}
+
+/* Firefox */
+.timeline-scrubber-slider::-moz-range-track {
+  height: 7px;
+  border-radius: 9999px;
+  background: #233127;
+  border: 1px solid rgba(169, 134, 63, 0.4);
+}
+
+.timeline-scrubber-slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #8a3b24;
+  border: 2px solid #f2b880;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  cursor: grab;
+  transition: transform 120ms ease;
+}
+
+.timeline-scrubber-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.2);
+  background: #a0452b;
+}
+
+/* ==========================================================================
+   Capital Pin Pulse Animation & Entrance Effects
+   ========================================================================== */
+
+/* Remove default Leaflet divIcon box and enable overflowing pulse rings */
+.leaflet-marker-icon.capital-pin-marker {
+  overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Entrance bounce effect when switching to a new capital */
+@keyframes capital-entrance-pop {
+  0% {
+    transform: scale(0) translateY(14px);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.28) translateY(-4px);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.92) translateY(1px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Concentric ripple pulse ring expanding outward */
+@keyframes capital-pulse-ripple {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.85;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  80% {
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+/* Core badge continuous rhythmic breathing glow */
+@keyframes capital-core-breathing {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(138, 59, 36, 0.8), 0 3px 12px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(169, 134, 63, 0.4), 0 0 16px rgba(242, 184, 128, 0.5), 0 4px 16px rgba(138, 59, 36, 0.6);
+  }
+}
+
+.capital-pin-wrapper {
+  animation: capital-entrance-pop 550ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.capital-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -16px;
+  margin-left: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.capital-pulse-ring-1 {
+  background: radial-gradient(circle, rgba(169, 134, 63, 0.5) 0%, rgba(138, 59, 36, 0.35) 70%, transparent 100%);
+  border: 1.5px solid rgba(242, 184, 128, 0.7);
+  animation: capital-pulse-ripple 2.4s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+}
+
+.capital-pulse-ring-2 {
+  background: radial-gradient(circle, rgba(138, 59, 36, 0.45) 0%, rgba(169, 134, 63, 0.25) 70%, transparent 100%);
+  border: 1px solid rgba(169, 134, 63, 0.5);
+  animation: capital-pulse-ripple 2.4s cubic-bezier(0.2, 0.6, 0.35, 1) infinite 800ms;
+}
+
+.capital-pulse-ring-3 {
+  background: radial-gradient(circle, rgba(242, 184, 128, 0.35) 0%, rgba(138, 59, 36, 0.2) 70%, transparent 100%);
+  border: 1px dashed rgba(242, 184, 128, 0.4);
+  animation: capital-pulse-ripple 2.4s cubic-bezier(0.2, 0.6, 0.35, 1) infinite 1600ms;
+}
+
+.capital-core-pin {
+  animation: capital-core-breathing 2.4s ease-in-out infinite;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.capital-core-pin:hover {
+  transform: scale(1.22);
+  box-shadow: 0 0 20px rgba(242, 184, 128, 0.8), 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+
