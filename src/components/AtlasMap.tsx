@@ -32,22 +32,27 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapContainerRef.current) return;
+    if (mapInstanceRef.current) return;
 
-    const map = L.map(mapContainerRef.current, {
+    const container = mapContainerRef.current;
+    if ((container as any)._leaflet_id) {
+      delete (container as any)._leaflet_id;
+    }
+
+    const map = L.map(container, {
       zoomControl: false,
       attributionControl: true,
-      minZoom: 4,
-      maxZoom: 12
+      minZoom: 3,
+      maxZoom: 13
     }).setView([26.8, 30.8], 5);
 
     // Zoom control on bottom left
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // Vintage/archival warm map tile layer (CartoDB Positron with CSS filter)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd',
+    // Default Tile layer (OpenStreetMap reliable tiles)
+    const baseTileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19
     }).addTo(map);
 
@@ -56,9 +61,35 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
     mapInstanceRef.current = map;
 
+    // ResizeObserver ensures Leaflet updates viewport when container layout changes
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    resizeObserver.observe(container);
+
+    // Additional invalidateSize calls on mount
+    const timer1 = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 100);
+
+    const timer2 = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 400);
+
     return () => {
-      map.remove();
-      mapInstanceRef.current = null;
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      resizeObserver.disconnect();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
   }, []);
 
@@ -224,13 +255,16 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     // 7. Smoothly fly map camera to bound all territorial extents
     if (boundsPoints.length > 1) {
       const bounds = L.latLngBounds(boundsPoints);
-      map.flyToBounds(bounds, {
-        padding: [45, 45],
-        duration: 1.1,
-        maxZoom: 7
-      });
+      if (bounds.isValid()) {
+        map.invalidateSize();
+        map.flyToBounds(bounds, {
+          padding: [45, 45],
+          duration: 0.9,
+          maxZoom: 7
+        });
+      }
     } else if (capital) {
-      map.flyTo([capital.lat, capital.lon], 6, { duration: 1.1 });
+      map.flyTo([capital.lat, capital.lon], 6, { duration: 0.9 });
     }
 
   }, [currentSlide, showFrontierLandmarks]);
@@ -290,14 +324,11 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full min-h-[350px]">
       {/* Map Container */}
       <div
         ref={mapContainerRef}
-        className="w-full h-full"
-        style={{
-          filter: 'sepia(14%) saturate(88%) contrast(97%)'
-        }}
+        className="w-full h-full z-0"
       />
 
       {/* Floating Legend & Map Controls Bar */}
