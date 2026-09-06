@@ -11,6 +11,7 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [showModernBorder, setShowModernBorder] = useState<boolean>(false);
   const [showFrontierLandmarks, setShowFrontierLandmarks] = useState<boolean>(true);
+  const [showLegend, setShowLegend] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<PeriodCategory | 'all'>('all');
 
@@ -63,6 +64,8 @@ export default function App() {
         onOpenModal={() => setIsModalOpen(true)}
         showModernBorder={showModernBorder}
         onToggleModernBorder={() => setShowModernBorder(prev => !prev)}
+        showLegend={showLegend}
+        onToggleLegend={() => setShowLegend(prev => !prev)}
         selectedCategory={selectedCategory}
         onSelectCategory={handleSelectCategory}
       />
@@ -88,6 +91,8 @@ export default function App() {
             onToggleModernBorder={() => setShowModernBorder(prev => !prev)}
             showFrontierLandmarks={showFrontierLandmarks}
             onToggleFrontierLandmarks={() => setShowFrontierLandmarks(prev => !prev)}
+            showLegend={showLegend}
+            onToggleLegend={() => setShowLegend(prev => !prev)}
           />
         </section>
       </main>

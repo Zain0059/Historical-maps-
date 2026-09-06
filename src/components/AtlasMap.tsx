@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
 import { MODERN_EGYPT_BORDER } from '../data/modernEgyptBorder';
-import { Layers, Eye, EyeOff, Compass, Maximize2 } from 'lucide-react';
+import { Layers, Eye, Compass, Maximize2, X } from 'lucide-react';
 
 interface AtlasMapProps {
   currentSlide: SlideData;
@@ -10,6 +10,8 @@ interface AtlasMapProps {
   onToggleModernBorder: () => void;
   showFrontierLandmarks: boolean;
   onToggleFrontierLandmarks: () => void;
+  showLegend: boolean;
+  onToggleLegend: () => void;
 }
 
 export const AtlasMap: React.FC<AtlasMapProps> = ({
@@ -17,7 +19,9 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   showModernBorder,
   onToggleModernBorder,
   showFrontierLandmarks,
-  onToggleFrontierLandmarks
+  onToggleFrontierLandmarks,
+  showLegend,
+  onToggleLegend
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -29,9 +33,6 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   const landmarksLayerRef = useRef<L.LayerGroup | null>(null);
   const capitalMarkerRef = useRef<L.Marker | null>(null);
   const modernBorderLayerRef = useRef<L.Polygon | null>(null);
-
-  // State to toggle legend panel visibility
-  const [isLegendOpen, setIsLegendOpen] = useState(true);
 
   // Initialize Map
   useEffect(() => {
@@ -335,31 +336,46 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       />
 
       {/* Floating Legend & Map Controls Bar */}
-      {!isLegendOpen ? (
+      {!showLegend ? (
         <button
           id="show-legend-btn"
-          onClick={() => setIsLegendOpen(true)}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleLegend();
+          }}
           title="إظهار دليل الخريطة التاريخية"
-          className="absolute top-3.5 right-3.5 z-[500] bg-[#e9e0c7]/95 hover:bg-[#ded1ab] active:scale-95 text-[#8a3b24] text-xs font-serif font-bold px-3 py-2 rounded shadow-md border border-[#c9bd97] flex items-center gap-2 transition-all cursor-pointer select-none"
+          className="absolute top-3.5 right-3.5 z-[1050] bg-[#e9e0c7] hover:bg-[#ded1ab] active:scale-95 text-[#8a3b24] text-xs font-serif font-bold px-3.5 py-2.5 rounded-lg shadow-xl border-2 border-[#8a3b24]/50 flex items-center gap-2 transition-all cursor-pointer select-none"
         >
           <Compass className="w-4 h-4 text-[#8a3b24]" />
-          <span>دليل الخريطة</span>
-          <Eye className="w-3.5 h-3.5 text-[#8a3b24]" />
+          <span>إظهار دليل الخريطة</span>
+          <Eye className="w-4 h-4 text-[#8a3b24]" />
         </button>
       ) : (
         <div
           id="map-legend-panel"
-          className="absolute top-3.5 right-3.5 z-[500] bg-[#e9e0c7]/95 backdrop-blur-sm text-[#241d12] text-xs p-3 rounded shadow-md border border-[#c9bd97] max-w-[270px] select-none transition-all animate-in fade-in zoom-in-95 duration-150"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="absolute top-3.5 right-3.5 z-[1050] bg-[#e9e0c7]/95 backdrop-blur-sm text-[#241d12] text-xs p-3.5 rounded-lg shadow-xl border border-[#c9bd97] max-w-[280px] select-none transition-all"
         >
-          <div className="flex items-center justify-between border-b border-[#c9bd97]/60 pb-1.5 mb-2 gap-2">
+          <div className="flex items-center justify-between border-b border-[#c9bd97]/60 pb-2 mb-2.5 gap-2">
             <div className="font-serif font-bold text-sm text-[#8a3b24] flex items-center gap-1.5">
               <Compass className="w-4 h-4 text-[#8a3b24]" />
               <span>دليل الخريطة التاريخية</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 id="recenter-map-btn"
-                onClick={handleRecenter}
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRecenter();
+                }}
                 title="إعادة ضبط إطار الرؤية للمنطقة"
                 className="p-1 hover:bg-[#d9cfae] rounded text-[#4a4130] transition-colors flex items-center justify-center cursor-pointer"
               >
@@ -367,11 +383,18 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
               </button>
               <button
                 id="hide-legend-btn"
-                onClick={() => setIsLegendOpen(false)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleLegend();
+                }}
                 title="إخفاء دليل الخريطة"
-                className="p-1 hover:bg-[#d9cfae] rounded text-[#8a3b24] hover:text-[#5f200f] transition-colors flex items-center justify-center cursor-pointer"
+                className="px-2 py-1 bg-[#8a3b24]/10 hover:bg-[#8a3b24] hover:text-white rounded text-[#8a3b24] font-medium text-[11px] transition-all flex items-center gap-1 cursor-pointer border border-[#8a3b24]/20"
               >
-                <EyeOff className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" />
+                <span>إخفاء</span>
               </button>
             </div>
           </div>
@@ -409,7 +432,13 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           <div className="mt-2.5 pt-2 border-t border-[#c9bd97]/60 space-y-1.5">
             <button
               id="toggle-modern-border-btn"
-              onClick={onToggleModernBorder}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleModernBorder();
+              }}
               className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
                 showModernBorder
                   ? 'bg-[#0d9488]/15 border-[#0d9488] text-[#0f766e]'
@@ -428,7 +457,13 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
             {currentSlide.extent?.frontierLandmarks && currentSlide.extent.frontierLandmarks.length > 0 && (
               <button
                 id="toggle-landmarks-btn"
-                onClick={onToggleFrontierLandmarks}
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFrontierLandmarks();
+                }}
                 className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
                   showFrontierLandmarks
                     ? 'bg-[#3f6259]/15 border-[#3f6259] text-[#2a443e]'
@@ -448,8 +483,14 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
             <span>ⓘ الحدود تقريبية ومبنية على معالم تاريخية.</span>
             <button
               id="hide-legend-text-btn"
-              onClick={() => setIsLegendOpen(false)}
-              className="text-[#8a3b24] hover:underline cursor-pointer shrink-0 mr-1 font-medium"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleLegend();
+              }}
+              className="text-[#8a3b24] hover:underline cursor-pointer shrink-0 mr-1 font-bold"
             >
               إخفاء الدليل
             </button>

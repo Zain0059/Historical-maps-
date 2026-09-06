@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, List, Map } from 'lucide-react';
+import { Layers, List, Map, Compass } from 'lucide-react';
 import { PeriodCategory } from '../types';
 
 interface HeaderProps {
@@ -8,6 +8,8 @@ interface HeaderProps {
   onOpenModal: () => void;
   showModernBorder: boolean;
   onToggleModernBorder: () => void;
+  showLegend: boolean;
+  onToggleLegend: () => void;
   selectedCategory: string;
   onSelectCategory: (cat: PeriodCategory | 'all') => void;
 }
@@ -18,6 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenModal,
   showModernBorder,
   onToggleModernBorder,
+  showLegend,
+  onToggleLegend,
   selectedCategory,
   onSelectCategory
 }) => {
@@ -81,6 +85,21 @@ export const Header: React.FC<HeaderProps> = ({
             <Layers className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">مقارنة الحدود المعاصرة</span>
             <span className="sm:hidden">مقارنة</span>
+          </button>
+
+          {/* Toggle Map Legend Button */}
+          <button
+            id="hdr-legend-btn"
+            onClick={onToggleLegend}
+            title={showLegend ? 'إخفاء دليل الخريطة التاريخية' : 'إظهار دليل الخريطة التاريخية'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
+              showLegend
+                ? 'bg-[#8a3b24]/30 border-[#8a3b24] text-[#f2b880]'
+                : 'bg-[#1c261f] border-[#a9863f]/40 text-[#d9cfae]/70 hover:bg-[#2a382e]'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>{showLegend ? 'إخفاء الدليل' : 'إظهار الدليل'}</span>
           </button>
 
           {/* Open All Eras Catalog Modal */}
