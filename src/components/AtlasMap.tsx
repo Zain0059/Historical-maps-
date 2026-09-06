@@ -153,7 +153,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       }).addTo(map);
 
       const label = extent.coreLabel || 'الحدود السيادية الأساسية';
-      corePoly.bindTooltip(`<div class="font-sans font-bold text-xs p-1 text-[#241d12]">${label}</div>`, {
+      corePoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#8a3b24] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
         sticky: true,
         direction: 'top',
         className: 'historical-tooltip'
@@ -176,7 +176,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       }).addTo(map);
 
       const label = extent.secondaryLabel || 'إقليم تابع / نفوذ إقليمي';
-      secPoly.bindTooltip(`<div class="font-sans font-bold text-xs p-1 text-[#241d12]">${label}</div>`, {
+      secPoly.bindTooltip(`<div dir="rtl" class="font-sans font-bold text-xs p-0.5 text-[#3f6259] text-right" style="white-space: normal; max-width: 180px;">${label}</div>`, {
         sticky: true,
         direction: 'top',
         className: 'historical-tooltip'
@@ -198,12 +198,13 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         });
 
         marker.bindTooltip(`
-          <div class="font-sans text-xs text-[#241d12] max-w-[200px]">
-            <div class="font-bold text-[#8a3b24] border-b border-[#c9bd97] pb-1 mb-1">📍 ${outpost.name}</div>
-            ${outpost.desc ? `<div class="text-[11px] leading-snug">${outpost.desc}</div>` : ''}
+          <div dir="rtl" class="font-sans text-right" style="white-space: normal; width: 190px; max-width: 210px;">
+            <div class="font-bold text-xs text-[#8a3b24] border-b border-[#c9bd97] pb-1 mb-1">📍 ${outpost.name}</div>
+            ${outpost.desc ? `<div class="text-[11px] text-[#4a4130] leading-snug">${outpost.desc}</div>` : ''}
           </div>
         `, {
           direction: 'top',
+          offset: [0, -8],
           className: 'historical-tooltip'
         });
 
@@ -224,12 +225,13 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         });
 
         marker.bindTooltip(`
-          <div class="font-sans text-xs text-[#241d12] max-w-[220px]">
-            <div class="font-bold text-[#3f6259] border-b border-[#c9bd97] pb-0.5 mb-1">🛡️ ${lm.name}</div>
-            ${lm.desc ? `<div class="text-[11px] leading-snug text-[#4a4130]">${lm.desc}</div>` : ''}
+          <div dir="rtl" class="font-sans text-right" style="white-space: normal; width: 190px; max-width: 210px;">
+            <div class="font-bold text-xs text-[#3f6259] border-b border-[#c9bd97] pb-0.5 mb-1">🛡️ ${lm.name}</div>
+            ${lm.desc ? `<div class="text-[11px] text-[#4a4130] leading-snug">${lm.desc}</div>` : ''}
           </div>
         `, {
           direction: 'top',
+          offset: [0, -6],
           className: 'historical-tooltip'
         });
 
@@ -243,13 +245,24 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       const capMarker = L.marker([capital.lat, capital.lon], { icon: capitalIcon }).addTo(map);
 
       capMarker.bindPopup(`
-        <div class="font-sans text-right p-1 max-w-[240px]">
+        <div dir="rtl" class="font-sans text-right p-1" style="white-space: normal; width: 210px; max-width: 230px;">
           <div class="text-xs text-[#8a3b24] font-bold tracking-wide">👑 العاصمة المركزية</div>
           <div class="font-serif font-bold text-base text-[#141c17] mt-0.5">${capital.name}</div>
           ${capital.description ? `<div class="text-xs text-[#4a4130] mt-1.5 leading-relaxed">${capital.description}</div>` : ''}
         </div>
       `, {
-        className: 'historical-popup'
+        className: 'historical-popup',
+        offset: [0, -10]
+      });
+
+      capMarker.bindTooltip(`
+        <div dir="rtl" class="font-sans font-bold text-xs text-[#8a3b24] text-right" style="white-space: normal;">
+          👑 ${capital.name}
+        </div>
+      `, {
+        direction: 'top',
+        offset: [0, -16],
+        className: 'historical-tooltip'
       });
 
       capitalMarkerRef.current = capMarker;
@@ -289,9 +302,10 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           interactive: true
         }).addTo(map);
 
-        poly.bindTooltip('<div class="font-sans text-xs font-bold text-[#0f766e]">حدود جمهورية مصر العربية المعاصرة (1989)</div>', {
+        poly.bindTooltip('<div dir="rtl" class="font-sans text-xs font-bold text-[#0f766e] text-right" style="white-space: normal; max-width: 200px;">حدود جمهورية مصر العربية المعاصرة (1989)</div>', {
           sticky: true,
-          direction: 'top'
+          direction: 'top',
+          className: 'historical-tooltip'
         });
 
         modernBorderLayerRef.current = poly;
@@ -332,6 +346,8 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       {/* Map Container */}
       <div
         ref={mapContainerRef}
+        id="historical-leaflet-map"
+        dir="ltr"
         className="w-full h-full z-0"
       />
 

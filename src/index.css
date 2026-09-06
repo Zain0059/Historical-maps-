@@ -26,13 +26,20 @@ h1, h2, h3, h4, .font-serif {
 }
 
 /* Leaflet Customizations for Parchment Vintage look */
+#historical-leaflet-map,
+.leaflet-container {
+  direction: ltr !important; /* Critical: Leaflet internal geometry requires LTR to prevent tile/tooltip inverted offsets */
+}
+
 .leaflet-popup-content-wrapper {
   background: #fbf7ee !important;
   color: #241d12 !important;
-  border-radius: 4px !important;
+  border-radius: 6px !important;
   border: 1px solid #c9bd97 !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28) !important;
   font-family: 'Tajawal', sans-serif !important;
+  direction: rtl !important;
+  text-align: right !important;
 }
 
 .leaflet-popup-tip {
@@ -40,12 +47,36 @@ h1, h2, h3, h4, .font-serif {
 }
 
 .leaflet-tooltip.historical-tooltip {
-  background: rgba(251, 247, 238, 0.95) !important;
-  border: 1px solid #c9bd97 !important;
+  background: #fbf7ee !important;
+  border: 1px solid #a9863f !important;
   color: #241d12 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-  border-radius: 3px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28) !important;
+  border-radius: 6px !important;
   direction: rtl !important;
+  text-align: right !important;
+  white-space: normal !important; /* Prevents text from stretching into a single endless line */
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 230px !important;
+  min-width: 120px !important;
+  width: max-content !important;
+  padding: 8px 10px !important;
+  font-family: 'Tajawal', sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.leaflet-tooltip-top.historical-tooltip::before {
+  border-top-color: #fbf7ee !important;
+}
+.leaflet-tooltip-bottom.historical-tooltip::before {
+  border-bottom-color: #fbf7ee !important;
+}
+.leaflet-tooltip-left.historical-tooltip::before {
+  border-left-color: #fbf7ee !important;
+}
+.leaflet-tooltip-right.historical-tooltip::before {
+  border-right-color: #fbf7ee !important;
 }
 
 /* Subtle scrollbars */
