@@ -103,12 +103,17 @@ h1, h2, h3, h4, .font-serif {
 }
 
 /* Ensure ALL tooltips in Leaflet wrap text and do not stretch indefinitely */
+.leaflet-tooltip-pane {
+  direction: ltr !important;
+}
+
 .leaflet-tooltip {
   white-space: normal !important;
   word-break: normal !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   box-sizing: border-box !important;
+  direction: ltr !important;
 }
 
 .leaflet-tooltip.historical-tooltip {
@@ -126,6 +131,7 @@ h1, h2, h3, h4, .font-serif {
   width: max-content !important;
   box-sizing: border-box !important;
   direction: ltr !important; /* Keep outer element LTR so Leaflet transforms calculate exactly */
+  text-align: center !important;
 }
 
 /* Inner content is cleanly formatted RTL */

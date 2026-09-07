@@ -29,13 +29,33 @@ export default function App() {
   // Keyboard navigation listener (Arrow Left/Right)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // In RTL, ArrowLeft usually progresses forward, ArrowRight goes back
+      if (e.key === 'Escape') {
+        setIsModalOpen(false);
+        return;
+      }
+
+      // Do not hijack arrow keys if focus is within interactive inputs or map container
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName.toLowerCase();
+        if (
+          tagName === 'input' ||
+          tagName === 'textarea' ||
+          tagName === 'select' ||
+          target.isContentEditable ||
+          target.closest('.leaflet-container') ||
+          target.closest('#era-scrubber-slider') ||
+          target.closest('#timeline-bar input[type="range"]')
+        ) {
+          return;
+        }
+      }
+
+      // In RTL, ArrowLeft progresses forward, ArrowRight goes back
       if (e.key === 'ArrowLeft') {
         handleNext();
       } else if (e.key === 'ArrowRight') {
         handlePrev();
-      } else if (e.key === 'Escape') {
-        setIsModalOpen(false);
       }
     };
 

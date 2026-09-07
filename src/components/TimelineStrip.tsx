@@ -101,7 +101,7 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
 
             {/* Date range badge */}
             <div className="text-[11px] font-sans text-[#a9863f] shrink-0 font-medium mr-2">
-              {currentSlide.dateRange || ''}
+              {currentSlide.date || ''}
             </div>
           </div>
 

@@ -389,47 +389,9 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         });
       }
 
-      // 5. Draw Frontier Landmarks (if enabled)
-      if (showFrontierLandmarks && extent?.frontierLandmarks && landmarksLayerRef.current) {
-        extent.frontierLandmarks.forEach((lm: FrontierLandmark) => {
-          if (
-            typeof lm.lat !== 'number' ||
-            isNaN(lm.lat) ||
-            !isFinite(lm.lat) ||
-            typeof lm.lon !== 'number' ||
-            isNaN(lm.lon) ||
-            !isFinite(lm.lon)
-          ) {
-            return;
-          }
+      // Note: Frontier Landmarks are updated in a dedicated effect so toggling them preserves user camera zoom/position
 
-          const marker = L.circleMarker([lm.lat, lm.lon], {
-            pane: 'historicalMarkerPane',
-            radius: 5,
-            color: '#2a443e',
-            weight: 2,
-            fillColor: '#7d9992',
-            fillOpacity: 0.85
-          });
-
-          marker.bindPopup(`
-            <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
-              <div class="text-[11px] font-bold text-[#3f6259] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">🛡️ معلم / قلعة حدودية</div>
-              <div class="font-serif font-bold text-sm text-[#141c17]">${lm.name}</div>
-              ${lm.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${lm.desc}</div>` : ''}
-            </div>
-          `, {
-            className: 'historical-popup',
-            offset: [0, -6],
-            autoPan: true
-          });
-
-          landmarksLayerRef.current?.addLayer(marker);
-          boundsPoints.push([lm.lat, lm.lon]);
-        });
-      }
-
-      // 6. Draw Capital Marker
+      // 5. Draw Capital Marker
       if (
         capital &&
         typeof capital.lat === 'number' &&
@@ -520,7 +482,53 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       if (frameTimerRef.current) clearTimeout(frameTimerRef.current);
     };
 
-  }, [currentSlide, showFrontierLandmarks]);
+  }, [currentSlide]);
+
+  // Dedicated effect for frontier landmarks: toggling updates landmarks layer directly without resetting camera view or re-rendering entire era
+  useEffect(() => {
+    const layer = landmarksLayerRef.current;
+    if (!layer) return;
+
+    layer.clearLayers();
+
+    if (showFrontierLandmarks && currentSlide.extent?.frontierLandmarks) {
+      currentSlide.extent.frontierLandmarks.forEach((lm: FrontierLandmark) => {
+        if (
+          typeof lm.lat !== 'number' ||
+          isNaN(lm.lat) ||
+          !isFinite(lm.lat) ||
+          typeof lm.lon !== 'number' ||
+          isNaN(lm.lon) ||
+          !isFinite(lm.lon)
+        ) {
+          return;
+        }
+
+        const marker = L.circleMarker([lm.lat, lm.lon], {
+          pane: 'historicalMarkerPane',
+          radius: 5,
+          color: '#2a443e',
+          weight: 2,
+          fillColor: '#7d9992',
+          fillOpacity: 0.85
+        });
+
+        marker.bindPopup(`
+          <div dir="rtl" class="text-right font-sans" style="white-space: normal; min-width: 170px; max-width: 230px;">
+            <div class="text-[11px] font-bold text-[#3f6259] tracking-wide border-b border-[#c9bd97]/50 pb-1 mb-1">🛡️ معلم / قلعة حدودية</div>
+            <div class="font-serif font-bold text-sm text-[#141c17]">${lm.name}</div>
+            ${lm.desc ? `<div class="text-xs text-[#4a4130] mt-1 leading-relaxed">${lm.desc}</div>` : ''}
+          </div>
+        `, {
+          className: 'historical-popup',
+          offset: [0, -6],
+          autoPan: true
+        });
+
+        layer.addLayer(marker);
+      });
+    }
+  }, [showFrontierLandmarks, currentSlide]);
 
   // Handle Modern Border Overlay toggle
   useEffect(() => {
@@ -539,9 +547,10 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           interactive: true
         }).addTo(map);
 
-        poly.bindTooltip('<div dir="rtl" class="font-sans text-xs font-bold text-[#0f766e] text-right" style="white-space: normal; max-width: 200px;">حدود جمهورية مصر العربية المعاصرة (1989)</div>', {
+        poly.bindTooltip('<div class="historical-tooltip-content" dir="rtl"><span class="font-sans text-xs font-bold text-[#0f766e] text-right block" style="white-space: normal; max-width: 200px;">حدود جمهورية مصر العربية المعاصرة (1989)</span></div>', {
           sticky: true,
           direction: 'top',
+          offset: [0, -10],
           className: 'historical-tooltip'
         });
 
