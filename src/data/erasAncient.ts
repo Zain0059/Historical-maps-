@@ -29,9 +29,9 @@ export const ANCIENT_ERAS: SlideData[] = [
     },
     borderDescription: 'تمتد جمهورية مصر العربية اليوم على مساحة مليون واثنين وأربعين ألف كم² في الركن الشمالي الشرقي لإفريقيا والامتداد الآسيوي بشبه جزيرة سيناء، بحدود هندسية وتاريخية واضحة ومستقرة.',
     media: {
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Flag_of_Egypt.svg/1200px-Flag_of_Egypt.svg.png',
-      caption: 'جمهورية مصر العربية — أقدم دولة قومية موحدة في التاريخ الإنساني',
-      credit: 'أطلس الحدود المصرية'
+      url: '/assets/flag_of_egypt.svg',
+      caption: 'علم جمهورية مصر العربية الرسمي — ألوان التحرير العربية يتوسطها نسر صلاح الدين الذهبي',
+      credit: 'القانون رقم 144 لسنة 1984 بشأن العلم الوطني'
     },
     geographicalStats: {
       maxReachNorth: 'البحر الأبيض المتوسط',

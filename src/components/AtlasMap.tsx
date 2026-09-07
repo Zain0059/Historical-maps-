@@ -604,7 +604,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[350px] overflow-hidden">
+    <div className="relative w-full h-full min-h-[160px] md:min-h-[260px] overflow-hidden">
       {/* Map Container */}
       <div
         ref={mapContainerRef}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SlideData } from '../types';
 import { Shield, BookOpen, Landmark, Calendar, MapPin, ExternalLink, Sparkles, TrendingUp, BarChart3, FileText } from 'lucide-react';
 import { HistoricalDataPanel } from './HistoricalDataPanel';
@@ -20,7 +20,12 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
   onTabChange
 }) => {
   const [localTab, setLocalTab] = useState<'narrative' | 'statistics'>('narrative');
+  const [imageError, setImageError] = useState<boolean>(false);
   const currentTab = controlledTab !== undefined ? controlledTab : localTab;
+
+  useEffect(() => {
+    setImageError(false);
+  }, [slide.id, slide.media?.url]);
 
   const handleTabSelect = (tab: 'narrative' | 'statistics') => {
     if (onTabChange) {
@@ -35,19 +40,19 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
   return (
     <div
       id="narrative-scroll-panel"
-      className="h-full overflow-y-auto bg-[#e9e0c7] text-[#241d12] p-5 md:p-7 relative shadow-inner select-text"
+      className="w-full h-full min-h-0 overflow-y-auto overscroll-contain bg-[#e9e0c7] text-[#241d12] p-4 sm:p-5 md:p-6 lg:p-7 relative z-10 select-text scroll-smooth scrollbar-thin scrollbar-thumb-[#a9863f] scrollbar-track-[#ddd3b7]/40"
       style={{
-        boxShadow: 'inset 0 0 40px rgba(90, 70, 30, 0.12)'
+        boxShadow: 'inset 0 0 35px rgba(90, 70, 30, 0.12)'
       }}
     >
       {/* Top Switcher Tabs: Narrative vs Recharts Data Panel */}
-      <div className="flex items-center justify-between border-b border-[#a9863f]/40 pb-2 mb-4">
-        <div className="flex items-center gap-1.5 bg-[#ddd3b7]/60 p-1 rounded-lg border border-[#c9bd97]">
+      <div className="flex items-center justify-between border-b border-[#a9863f]/40 pb-2 mb-3.5">
+        <div className="flex items-center gap-1.5 bg-[#ddd3b7]/70 p-1 rounded-lg border border-[#c9bd97]">
           <button
             id="tab-narrative"
             type="button"
             onClick={() => handleTabSelect('narrative')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
               currentTab === 'narrative'
                 ? 'bg-[#1c261f] text-[#e9e0c7] shadow-sm'
                 : 'text-[#3c3324] hover:text-[#141c17] hover:bg-[#c9bd97]/50'
@@ -61,7 +66,7 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
             id="tab-statistics"
             type="button"
             onClick={() => handleTabSelect('statistics')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
               currentTab === 'statistics'
                 ? 'bg-[#8a3b24] text-white shadow-sm'
                 : 'text-[#3c3324] hover:text-[#141c17] hover:bg-[#c9bd97]/50'
@@ -78,7 +83,7 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
         </div>
 
         {/* Quick hint for the user */}
-        <span className="text-[11px] text-[#63563f] hidden sm:inline font-medium">
+        <span className="text-[11px] text-[#63563f] hidden sm:inline font-bold">
           الحقبة {slide.id} من 18
         </span>
       </div>
@@ -97,8 +102,8 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
         /* VIEW 2: Primary Historical Narrative & Border Details */
         <>
           {/* Era metadata header */}
-          <div className="mb-4">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="mb-3.5">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
               {slide.categoryLabel && (
                 <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-[#3f6259]/15 text-[#3f6259] border border-[#3f6259]/30">
                   {slide.categoryLabel}
@@ -112,17 +117,17 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
               )}
             </div>
 
-            <h1 className="font-serif font-bold text-2xl md:text-3xl text-[#141c17] leading-snug border-b-2 border-[#a9863f] pb-3">
+            <h1 className="font-serif font-bold text-xl sm:text-2xl md:text-3xl text-[#141c17] leading-snug border-b-2 border-[#a9863f] pb-2 sm:pb-3">
               {slide.headline}
             </h1>
 
             {/* Quick Metadata: Capital & Interactive Area Pill */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
               {slide.capital && (
-                <div className="inline-flex items-center gap-2 bg-[#3f6259]/10 border border-[#3f6259]/30 rounded px-3 py-1.5 text-xs text-[#2a443e]">
-                  <MapPin className="w-4 h-4 text-[#8a3b24] shrink-0" />
-                  <span className="font-medium">العاصمة والقلب الإداري:</span>
-                  <span className="font-serif font-bold text-sm text-[#141c17]">{slide.capital.name}</span>
+                <div className="inline-flex items-center gap-1.5 bg-[#3f6259]/10 border border-[#3f6259]/30 rounded px-2.5 py-1 text-xs text-[#2a443e]">
+                  <MapPin className="w-3.5 h-3.5 text-[#8a3b24] shrink-0" />
+                  <span className="font-medium">العاصمة:</span>
+                  <span className="font-serif font-bold text-xs sm:text-sm text-[#141c17]">{slide.capital.name}</span>
                 </div>
               )}
 
@@ -130,7 +135,7 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
                 type="button"
                 id="narrative-area-shortcut-btn"
                 onClick={() => handleTabSelect('statistics')}
-                className="inline-flex items-center gap-1.5 bg-[#8a3b24]/10 hover:bg-[#8a3b24]/20 border border-[#8a3b24]/30 rounded px-3 py-1.5 text-xs text-[#8a3b24] font-medium transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-[#8a3b24]/10 hover:bg-[#8a3b24]/20 border border-[#8a3b24]/30 rounded px-2.5 py-1 text-xs text-[#8a3b24] font-medium transition-colors cursor-pointer"
                 title="انقر لعرض المخطط البياني في لوحة البيانات (Recharts)"
               >
                 <TrendingUp className="w-3.5 h-3.5 shrink-0" />
@@ -142,15 +147,26 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
 
       {/* Media figure (if present) */}
       {slide.media?.url && (
-        <figure className="my-5 border border-[#c9bd97] bg-white p-2 rounded shadow-sm">
-          <img
-            src={slide.media.url}
-            alt={slide.media.caption || slide.headline}
-            className="w-full max-h-56 object-contain rounded"
-            loading="lazy"
-          />
+        <figure className="my-4 border border-[#c9bd97] bg-gradient-to-b from-[#fbf9f2] to-[#f4eee0] p-2.5 rounded-lg shadow-sm flex flex-col items-center select-none overflow-hidden">
+          {!imageError ? (
+            <img
+              id="narrative-media-image"
+              src={slide.media.url}
+              alt={slide.media.caption || slide.headline}
+              className="aspect-[3/2] w-auto max-w-[260px] sm:max-w-[320px] max-h-44 sm:max-h-48 object-contain rounded-xs shadow-md ring-1 ring-[#141c17]/20 transition-opacity duration-200"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full py-6 px-4 bg-[#ede4ce]/60 border border-dashed border-[#c9bd97] rounded flex flex-col items-center justify-center text-center">
+              <Shield className="w-7 h-7 text-[#8a3b24] mb-1.5" />
+              <span className="font-serif font-bold text-xs text-[#141c17]">{slide.media.caption || slide.headline}</span>
+              <span className="text-[11px] text-[#63563f] mt-0.5">{slide.media.credit || 'أطلس حدود مصر التاريخية'}</span>
+            </div>
+          )}
           {(slide.media.caption || slide.media.credit) && (
-            <figcaption className="text-center text-[11.5px] text-[#4a4130] mt-2 border-t border-[#f0ebda] pt-1 font-sans">
+            <figcaption className="text-center text-[11px] sm:text-xs text-[#4a4130] mt-2 border-t border-[#e2d8bd] pt-1.5 font-sans w-full">
               <span>{slide.media.caption}</span>
               {slide.media.credit && <span className="opacity-75"> — {slide.media.credit}</span>}
             </figcaption>

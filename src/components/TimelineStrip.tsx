@@ -34,12 +34,12 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
   }, [currentIndex]);
 
   return (
-    <div id="timeline-bar" className="bg-[#1c261f] border-t border-[#a9863f]/30 select-none">
-      {/* Horizontal timeline cards */}
-      <div className="px-3 py-1.5 border-b border-[#a9863f]/20">
+    <div id="timeline-bar" className="bg-[#1c261f] border-t border-[#a9863f]/30 select-none z-30">
+      {/* Horizontal timeline cards (Compact) */}
+      <div className="px-2 py-0.5 border-b border-[#a9863f]/20 bg-[#17211b]">
         <div
           ref={scrollContainerRef}
-          className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin scrollbar-thumb-[#a9863f] scrollbar-track-transparent"
+          className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-thin scrollbar-thumb-[#a9863f] scrollbar-track-transparent"
           style={{ scrollbarWidth: 'thin' }}
         >
           {slides.map((slide, idx) => {
@@ -52,24 +52,24 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
                 id={`timeline-node-${idx}`}
                 data-index={idx}
                 onClick={() => onSelectSlide(idx)}
-                className={`group flex-shrink-0 px-2.5 py-1 rounded text-center transition-all duration-200 border-b-2 ${
+                className={`group flex-shrink-0 px-2 py-0.5 rounded text-center transition-all duration-150 border-b-2 ${
                   isActive
-                    ? 'bg-[#2a382e] border-[#8a3b24] text-[#e9e0c7] shadow-sm'
+                    ? 'bg-[#2a382e] border-[#8a3b24] text-[#e9e0c7] shadow-xs'
                     : 'bg-transparent border-transparent text-[#d9cfae]/60 hover:text-[#e9e0c7] hover:bg-[#222e25]'
                 }`}
                 style={{
-                  minWidth: isOverview ? '72px' : '90px',
-                  maxWidth: '135px'
+                  minWidth: isOverview ? '62px' : '78px',
+                  maxWidth: '120px'
                 }}
               >
-                <span className={`block font-serif text-[10.5px] leading-tight ${isActive ? 'text-[#a9863f] font-bold' : 'text-[#a9863f]/80'}`}>
+                <span className={`block font-serif text-[9.5px] leading-none ${isActive ? 'text-[#a9863f] font-bold' : 'text-[#a9863f]/80'}`}>
                   {isOverview ? 'البداية' : `العصر ${slide.id}`}
                 </span>
                 <span
-                  className={`block text-[11px] mt-0.5 truncate leading-tight ${isActive ? 'font-bold text-white' : 'font-medium'}`}
+                  className={`block text-[10px] mt-0.5 truncate leading-tight ${isActive ? 'font-bold text-white' : 'font-medium'}`}
                   title={slide.headline}
                 >
-                  {isOverview ? 'مقدمة الأطلس' : slide.headline.replace(/^(عصر|الدولة|المملكة|جمهورية)\s+/, '')}
+                  {isOverview ? 'مقدمة' : slide.headline.replace(/^(عصر|الدولة|المملكة|جمهورية)\s+/, '')}
                 </span>
               </button>
             );
@@ -77,66 +77,51 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
         </div>
       </div>
 
-      {/* Interactive Slider Scrubber & Quick Navigation Controls */}
-      <div className="px-3 sm:px-4 py-2 bg-[#141c17]">
-        <div className="flex flex-col gap-1.5 max-w-7xl mx-auto">
-          {/* Top scrubber info row */}
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <span className="font-serif font-bold text-[11px] text-[#c9bd97] flex items-center gap-1 shrink-0">
-                <History className="w-3.5 h-3.5 text-[#a9863f]" />
-                <span className="hidden sm:inline">شريط التمرير الزمني:</span>
-                <span className="sm:hidden">التمرير:</span>
-              </span>
-
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="bg-[#8a3b24] text-white font-bold text-[10.5px] px-1.5 py-0.5 rounded shadow-sm shrink-0">
-                  {currentIndex === 0 ? 'مقدمة الأطلس' : `الحقبة ${currentIndex}`}
-                </span>
-                <span className="text-[#f2b880] font-serif font-bold text-xs truncate">
-                  {currentSlide.headline}
-                </span>
-              </div>
-            </div>
-
-            {/* Date range badge */}
-            <div className="text-[11px] font-sans text-[#a9863f] shrink-0 font-medium mr-2">
-              {currentSlide.date || ''}
-            </div>
-          </div>
-
-          {/* Slider track row with Jump & Step Controls */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Quick jump to beginning (3200 BC) */}
+      {/* Interactive Slider Scrubber & Compact Navigation Row */}
+      <div className="px-2.5 py-1 bg-[#141c17]">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 max-w-7xl mx-auto">
+          {/* Right Controls (in RTL): Jump to Start + Step Prev */}
+          <div className="flex items-center gap-1 shrink-0">
             <button
               id="nav-first-era-btn"
               onClick={() => onSelectSlide(0)}
               disabled={currentIndex === 0}
-              title="الانتقال إلى أول العصور (3200 ق.م)"
-              className="p-1 rounded text-[#d9cfae]/70 hover:text-[#e9e0c7] hover:bg-[#2a382e] disabled:opacity-20 disabled:pointer-events-none transition-colors shrink-0"
+              title="أول العصور (3200 ق.م)"
+              className="p-1 rounded text-[#d9cfae]/70 hover:text-[#e9e0c7] hover:bg-[#2a382e] disabled:opacity-20 disabled:pointer-events-none transition-colors"
             >
-              <ChevronsRight className="w-4 h-4" />
+              <ChevronsRight className="w-3.5 h-3.5" />
             </button>
 
-            {/* Step Previous button */}
             <button
               id="nav-prev-btn"
               onClick={onPrev}
               disabled={currentIndex === 0}
-              title="الحقبة السابقة (السهم الأيمن)"
-              className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border border-[#a9863f]/40 bg-[#1c261f] text-[#e9e0c7] hover:bg-[#a9863f] hover:text-[#141c17] disabled:opacity-25 disabled:pointer-events-none transition-colors shrink-0"
+              title="الحقبة السابقة"
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border border-[#a9863f]/40 bg-[#1c261f] text-[#e9e0c7] hover:bg-[#a9863f] hover:text-[#141c17] disabled:opacity-25 disabled:pointer-events-none transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">السابق</span>
+              <span className="hidden sm:inline">السابق</span>
             </button>
+          </div>
 
-            {/* Antiquity label */}
-            <span className="text-[10.5px] font-serif text-[#d9cfae]/70 shrink-0 select-none hidden xs:inline">
+          {/* Center: Compact Active Era Indicator + Range Scrubber */}
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            {/* Active Era Chip */}
+            <div className="hidden md:flex items-center gap-1.5 shrink-0 truncate max-w-[200px] lg:max-w-[260px]">
+              <span className="bg-[#8a3b24] text-white font-bold text-[10px] px-1.5 py-0.2 rounded shadow-xs shrink-0">
+                {currentIndex === 0 ? 'مقدمة' : `الحقبة ${currentIndex}`}
+              </span>
+              <span className="text-[#f2b880] font-serif font-bold text-xs truncate">
+                {currentSlide.headline}
+              </span>
+            </div>
+
+            {/* Slider track with dates */}
+            <span className="text-[10px] font-serif text-[#d9cfae]/60 shrink-0 select-none hidden xs:inline">
               3200 ق.م
             </span>
 
-            {/* Interactive Range Scrubber */}
-            <div className="relative flex-1 flex items-center py-1">
+            <div className="relative flex-1 flex items-center py-0.5">
               <input
                 id="era-scrubber-slider"
                 type="range"
@@ -153,37 +138,37 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
               />
             </div>
 
-            {/* Modern era label */}
-            <span className="text-[10.5px] font-serif text-[#d9cfae]/70 shrink-0 select-none hidden xs:inline">
+            <span className="text-[10px] font-serif text-[#d9cfae]/60 shrink-0 select-none hidden xs:inline">
               1989 م
             </span>
+          </div>
 
-            {/* Step Next button */}
+          {/* Left Controls (in RTL): Step Next + Jump to End + Counter */}
+          <div className="flex items-center gap-1 shrink-0">
             <button
               id="nav-next-btn"
               onClick={onNext}
               disabled={currentIndex === slides.length - 1}
-              title="الحقبة التالية (السهم الأيسر)"
-              className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border border-[#a9863f]/40 bg-[#1c261f] text-[#e9e0c7] hover:bg-[#a9863f] hover:text-[#141c17] disabled:opacity-25 disabled:pointer-events-none transition-colors shrink-0"
+              title="الحقبة التالية"
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border border-[#a9863f]/40 bg-[#1c261f] text-[#e9e0c7] hover:bg-[#a9863f] hover:text-[#141c17] disabled:opacity-25 disabled:pointer-events-none transition-colors"
             >
-              <span className="hidden md:inline">التالي</span>
+              <span className="hidden sm:inline">التالي</span>
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            {/* Quick jump to modern era (1989 AD) */}
             <button
               id="nav-last-era-btn"
               onClick={() => onSelectSlide(slides.length - 1)}
               disabled={currentIndex === slides.length - 1}
-              title="الانتقال إلى العصر المعاصر (1989 م)"
-              className="p-1 rounded text-[#d9cfae]/70 hover:text-[#e9e0c7] hover:bg-[#2a382e] disabled:opacity-20 disabled:pointer-events-none transition-colors shrink-0"
+              title="العصر المعاصر (1989 م)"
+              className="p-1 rounded text-[#d9cfae]/70 hover:text-[#e9e0c7] hover:bg-[#2a382e] disabled:opacity-20 disabled:pointer-events-none transition-colors"
             >
-              <ChevronsLeft className="w-4 h-4" />
+              <ChevronsLeft className="w-3.5 h-3.5" />
             </button>
 
             {/* Slide Index Badge */}
-            <div className="font-serif text-xs text-[#a9863f] border border-[#a9863f]/40 px-2 py-0.5 rounded bg-[#1c261f] shrink-0 text-center min-w-[52px] dir-ltr">
-              {currentIndex + 1} / {slides.length}
+            <div className="font-serif text-[11px] text-[#a9863f] border border-[#a9863f]/40 px-1.5 py-0.5 rounded bg-[#1c261f] shrink-0 text-center font-bold dir-ltr">
+              {currentIndex + 1}/{slides.length}
             </div>
           </div>
         </div>

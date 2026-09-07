@@ -94,11 +94,11 @@ export default function App() {
       />
 
       {/* Main split: Map and Historical Narrative Panel */}
-      <main className="flex-1 flex flex-col md:flex-row min-h-0 relative">
+      <main className="flex-1 flex flex-col md:flex-row min-h-0 relative overflow-hidden">
         {/* Right side in RTL (Left visually): Narrative panel */}
         <section
           id="narrative-section"
-          className="flex-1 md:flex-initial md:w-[42%] lg:w-[40%] xl:w-[38%] min-w-[320px] max-w-[580px] h-full overflow-hidden border-b md:border-b-0 md:border-l border-[#a9863f]/30 z-10"
+          className="flex-1 md:flex-initial md:w-[48%] lg:w-[46%] xl:w-[45%] min-w-[320px] max-w-[720px] h-full min-h-0 overflow-hidden border-b md:border-b-0 md:border-l border-[#a9863f]/30 z-20"
         >
           <NarrativePanel
             slide={currentSlide}
@@ -111,7 +111,7 @@ export default function App() {
         {/* Left side in RTL (Right visually): Interactive Atlas Map */}
         <section
           id="map-section"
-          className="flex-1 h-full min-w-0 relative"
+          className="h-[36vh] sm:h-[40vh] md:h-full md:flex-1 min-h-[160px] min-w-0 relative z-10 flex-shrink-0 md:flex-shrink"
         >
           <AtlasMap
             currentSlide={currentSlide}
