@@ -1,5 +1,31 @@
 export type PeriodCategory = 'ancient' | 'greco_roman' | 'islamic_medieval' | 'modern';
 
+export type ControlType =
+  | 'direct_administration'
+  | 'dependency'
+  | 'temporary_occupation'
+  | 'campaign'
+  | 'trade_mining_garrison'
+  | 'uncertain_frontier'
+  | 'disputed_territory'
+  | 'treaty_boundary'
+  | 'holy_sanctuary'
+  | 'maritime_zone';
+
+export interface ControlFeature {
+  type: ControlType;
+  name?: string;
+  label?: string;
+  period?: string;
+  dateRange?: string;
+  authority?: string;
+  description?: string;
+  color?: string;
+  fillColor?: string;
+  coords?: [number, number][];
+  geometryType?: 'polygon' | 'line';
+}
+
 export interface OutpostPoint {
   name: string;
   lat: number;
@@ -16,21 +42,34 @@ export interface FrontierLandmark {
   desc?: string;
 }
 
+export type SecondaryType =
+  | 'vassal'
+  | 'divided'
+  | 'dependency'
+  | 'holy_sanctuary'
+  | 'african_extension'
+  | 'disputed_territory'
+  | 'campaign'
+  | 'trade_mining_garrison';
+
 export interface EraExtent {
   core: [number, number][];
   coreLabel?: string;
   secondary?: [number, number][];
   secondaryLabel?: string;
-  secondaryType?: 'vassal' | 'divided' | 'dependency' | 'holy_sanctuary' | 'african_extension';
+  secondaryType?: SecondaryType;
+  controlFeatures?: ControlFeature[];
   outposts?: OutpostPoint[];
   frontierLandmarks?: FrontierLandmark[];
   expansionNotes?: string;
+  reconstructionDate?: string;
 }
 
 export interface SlideData {
   id: number;
   type?: 'overview' | 'era';
   date: string;
+  reconstructionDate?: string;
   periodCategory?: PeriodCategory;
   categoryLabel?: string;
   headline: string;
@@ -59,3 +98,4 @@ export interface SlideData {
   };
   sources?: string[];
 }
+

@@ -88,7 +88,7 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
 
         {/* High-contrast era counter */}
         <span className="text-xs text-[#2a2216] hidden sm:inline font-bold">
-          الحقبة {slide.id} من 18
+          {slide.id === 0 ? 'نظرة عامة على الحدود' : `الحقبة ${slide.id} من 21`}
         </span>
       </div>
 

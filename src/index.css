@@ -43,6 +43,11 @@ h1, h2, h3, h4, .font-serif {
   text-align: left;
 }
 
+.leaflet-bottom.leaflet-left {
+  margin-bottom: 16px !important;
+  margin-left: 12px !important;
+}
+
 .leaflet-popup-content-wrapper {
   background: #fbf7ee !important;
   color: #241d12 !important;
@@ -612,6 +617,10 @@ h1, h2, h3, h4, .font-serif {
 
 #historical-leaflet-map {
   background-color: #f5f0e3 !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
 }
 
 /* Leaflet Tile Transitions for Era Historical Cartographic Grading */

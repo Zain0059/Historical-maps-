@@ -11,7 +11,7 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [showModernBorder, setShowModernBorder] = useState<boolean>(false);
   const [showFrontierLandmarks, setShowFrontierLandmarks] = useState<boolean>(true);
-  const [showLegend, setShowLegend] = useState<boolean>(true);
+  const [showLegend, setShowLegend] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<PeriodCategory | 'all'>('all');
   const [narrativeTab, setNarrativeTab] = useState<'narrative' | 'statistics'>('narrative');
@@ -98,7 +98,11 @@ export default function App() {
         {/* Right side in RTL (Left visually): Narrative panel */}
         <section
           id="narrative-section"
-          className="flex-1 md:flex-initial md:w-[48%] lg:w-[46%] xl:w-[45%] min-w-[320px] max-w-[720px] h-full min-h-0 overflow-hidden border-b md:border-b-0 md:border-l border-[#a9863f]/30 z-20"
+          className={`min-h-0 overflow-hidden border-b md:border-b-0 md:border-l border-[#a9863f]/30 z-20 transition-all ${
+            narrativeTab === 'narrative'
+              ? 'order-2 md:order-1 flex-1 h-[48vh] sm:h-[50vh] md:h-full md:flex-initial md:w-[48%] lg:w-[46%] xl:w-[45%] min-w-[320px] max-w-[720px]'
+              : 'w-full flex-1 h-full'
+          }`}
         >
           <NarrativePanel
             slide={currentSlide}
@@ -108,21 +112,25 @@ export default function App() {
           />
         </section>
 
-        {/* Left side in RTL (Right visually): Interactive Atlas Map */}
-        <section
-          id="map-section"
-          className="h-[36vh] sm:h-[40vh] md:h-full md:flex-1 min-h-[160px] min-w-0 relative z-10 flex-shrink-0 md:flex-shrink"
-        >
-          <AtlasMap
-            currentSlide={currentSlide}
-            showModernBorder={showModernBorder}
-            onToggleModernBorder={() => setShowModernBorder(prev => !prev)}
-            showFrontierLandmarks={showFrontierLandmarks}
-            onToggleFrontierLandmarks={() => setShowFrontierLandmarks(prev => !prev)}
-            showLegend={showLegend}
-            onToggleLegend={() => setShowLegend(prev => !prev)}
-          />
-        </section>
+        {/* Left side in RTL (Right visually): Interactive Atlas Map (Loads ONLY in the first tab) */}
+        {narrativeTab === 'narrative' && (
+          <section
+            id="map-section"
+            className="order-1 md:order-2 flex-1 h-[52vh] sm:h-[50vh] md:h-full min-h-[200px] min-w-0 relative z-10 flex-shrink-0 md:flex-shrink"
+          >
+            <AtlasMap
+              key={`atlas-map-era-${currentSlide.id}`}
+              currentSlide={currentSlide}
+              showModernBorder={showModernBorder}
+              onToggleModernBorder={() => setShowModernBorder(prev => !prev)}
+              showFrontierLandmarks={showFrontierLandmarks}
+              onToggleFrontierLandmarks={() => setShowFrontierLandmarks(prev => !prev)}
+              showLegend={showLegend}
+              onToggleLegend={() => setShowLegend(prev => !prev)}
+              activeTab={narrativeTab}
+            />
+          </section>
+        )}
       </main>
 
       {/* Bottom Timeline and Navigation Bar */}
