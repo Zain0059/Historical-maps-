@@ -119,7 +119,6 @@ export default function App() {
             className="order-1 md:order-2 flex-1 h-[52vh] sm:h-[50vh] md:h-full min-h-[200px] min-w-0 relative z-10 flex-shrink-0 md:flex-shrink"
           >
             <AtlasMap
-              key={`atlas-map-era-${currentSlide.id}`}
               currentSlide={currentSlide}
               showModernBorder={showModernBorder}
               onToggleModernBorder={() => setShowModernBorder(prev => !prev)}
