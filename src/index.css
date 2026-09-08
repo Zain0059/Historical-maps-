@@ -360,4 +360,377 @@ h1, h2, h3, h4, .font-serif {
   box-shadow: 0 0 20px rgba(242, 184, 128, 0.8), 0 4px 18px rgba(0, 0, 0, 0.6);
 }
 
+/* ==========================================================================
+   Era Temporal Transition & High-Contrast Typography
+   ========================================================================== */
+
+/* Era transition shimmer line at top of narrative panel */
+@keyframes era-shimmer-sweep {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+.era-transition-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: linear-gradient(90deg, transparent, #a9863f, #8a3b24, #f2b880, transparent);
+  animation: era-shimmer-sweep 700ms cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* Atmospheric temporal shift flash across map when switching eras */
+@keyframes map-temporal-flash {
+  0% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.map-temporal-sheen {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(242, 184, 128, 0.18) 0%, rgba(138, 59, 36, 0.12) 60%, rgba(20, 28, 23, 0.25) 100%);
+  pointer-events: none;
+  z-index: 500;
+  animation: map-temporal-flash 550ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Era Toast Badge overlay on map during era shifts */
+@keyframes era-toast-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.era-map-toast {
+  animation: era-toast-slide 1800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+
+/* High-contrast styling for narrative body text */
+.era-body {
+  color: #17120a !important;
+  font-size: 15.5px !important;
+  line-height: 1.8 !important;
+  letter-spacing: -0.01em;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+.era-body p {
+  margin-bottom: 0.95rem;
+  color: #17120a;
+  text-align: justify;
+}
+
+.era-body p:last-child {
+  margin-bottom: 0;
+}
+
+.era-body strong,
+.era-body b {
+  color: #7a2914 !important;
+  font-weight: 700 !important;
+}
+
+.era-body mark {
+  background-color: rgba(169, 134, 63, 0.25);
+  color: #17120a;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+/* Smooth transition wrapper for narrative panel cards */
+.narrative-era-transition-container {
+  will-change: opacity, transform;
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Temporal Fade (مرور الزمن) - Historical Atlas CSS Overlay Filter
+   ========================================================================== */
+
+@keyframes temporal-fade-bloom {
+  0% {
+    opacity: 0.95;
+    backdrop-filter: sepia(0.68) contrast(1.24) saturate(0.78) brightness(0.88) blur(1.5px);
+    -webkit-backdrop-filter: sepia(0.68) contrast(1.24) saturate(0.78) brightness(0.88) blur(1.5px);
+    transform: scale(1.02);
+  }
+  30% {
+    opacity: 0.85;
+    backdrop-filter: sepia(0.52) contrast(1.16) saturate(0.85) brightness(0.92) blur(1px);
+    -webkit-backdrop-filter: sepia(0.52) contrast(1.16) saturate(0.85) brightness(0.92) blur(1px);
+  }
+  65% {
+    opacity: 0.45;
+    backdrop-filter: sepia(0.25) contrast(1.06) saturate(0.94) brightness(0.97) blur(0.4px);
+    -webkit-backdrop-filter: sepia(0.25) contrast(1.06) saturate(0.94) brightness(0.97) blur(0.4px);
+  }
+  100% {
+    opacity: 0;
+    backdrop-filter: sepia(0) contrast(1) saturate(1) brightness(1) blur(0px);
+    -webkit-backdrop-filter: sepia(0) contrast(1) saturate(1) brightness(1) blur(0px);
+    transform: scale(1);
+  }
+}
+
+@keyframes temporal-ring-spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.9);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(30deg) scale(1.05);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(60deg) scale(1.16);
+    opacity: 0;
+  }
+}
+
+@keyframes temporal-chronometer-pulse {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.9;
+  }
+  40% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Master Temporal Fade Overlay */
+.temporal-fade-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 460;
+  overflow: hidden;
+  will-change: opacity, backdrop-filter, transform;
+  animation: temporal-fade-bloom 850ms cubic-bezier(0.18, 0.89, 0.32, 1.1) forwards;
+  /* Antique parchment temporal vignette */
+  background: radial-gradient(
+    ellipse at center,
+    rgba(242, 184, 128, 0.16) 0%,
+    rgba(169, 134, 63, 0.22) 38%,
+    rgba(138, 59, 36, 0.3) 68%,
+    rgba(16, 23, 19, 0.68) 100%
+  );
+  box-shadow: inset 0 0 90px rgba(16, 23, 19, 0.75);
+}
+
+/* Central Astrolabe / Historical Chronograph Rings */
+.temporal-chronograph-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(242, 184, 128, 0.65);
+  box-shadow: 0 0 35px rgba(169, 134, 63, 0.35), inset 0 0 35px rgba(169, 134, 63, 0.2);
+  pointer-events: none;
+  animation: temporal-ring-spin 850ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.temporal-chronograph-ring::before {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 184, 128, 0.45);
+}
+
+.temporal-chronograph-ring::after {
+  content: '';
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  border: 1.5px dotted rgba(212, 163, 89, 0.5);
+}
+
+/* Subtle antique parchment grain scanlines overlay */
+.temporal-parchment-grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(169, 134, 63, 0.2) 1px, transparent 1px);
+  background-size: 14px 14px;
+  mix-blend-mode: overlay;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Dynamic CSS filter on the map container during temporal shift */
+.historical-map-canvas {
+  transition: filter 400ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  will-change: filter;
+}
+
+.historical-map-canvas.is-temporal-shifting {
+  filter: sepia(0.3) contrast(1.1) saturate(0.85) brightness(0.95);
+}
+
+/* ==========================================================================
+   Historical Document Textures & Paper Grains (نسيج الخرائط والوثائق التاريخية)
+   ========================================================================== */
+
+#historical-leaflet-map {
+  background-color: #f5f0e3 !important;
+}
+
+/* Leaflet Tile Transitions for Era Historical Cartographic Grading */
+#historical-leaflet-map .leaflet-tile-pane .leaflet-tile {
+  transition: filter 350ms ease !important;
+  will-change: filter;
+}
+
+/* Ultra-subtle tinting that preserves 100% legibility of rivers, labels, and borders */
+.era-texture-ancient:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
+  filter: sepia(0.06) contrast(1.03) brightness(0.99);
+}
+
+.era-texture-greco_roman:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
+  filter: sepia(0.04) contrast(1.02) brightness(1.0);
+}
+
+.era-texture-islamic_medieval:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
+  filter: sepia(0.05) contrast(1.02) brightness(0.99);
+}
+
+.era-texture-modern:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
+  filter: contrast(1.02) brightness(1.0);
+}
+
+/* Clean reset when user disables document texture */
+.era-texture-disabled .leaflet-tile-pane .leaflet-tile {
+  filter: none !important;
+}
+
+/* Master Overlay for tactile document grain & authentic parchment texture */
+.historical-texture-overlay-master {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 24; /* Positioned directly above tile pane, below vectors, markers & controls */
+  overflow: hidden;
+  opacity: 0.18; /* Delicate, transparent watermark so original base map is fully visible */
+  transition: opacity 400ms ease;
+}
+
+.historical-texture-sublayer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 450ms ease;
+  will-change: opacity;
+}
+
+.historical-texture-sublayer.is-active {
+  opacity: 1;
+}
+
+/* Texture 1: Ancient Egyptian Papyrus (بردي فرعوني أصيل) */
+.texture-papyrus {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(169, 134, 63, 0.08) 0px,
+      rgba(169, 134, 63, 0.08) 1.5px,
+      transparent 1.5px,
+      transparent 6px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(169, 134, 63, 0.08) 0px,
+      rgba(169, 134, 63, 0.08) 1.5px,
+      transparent 1.5px,
+      transparent 8px
+    );
+  mix-blend-mode: multiply;
+}
+
+/* Texture 2: Alexandrian Vellum & Ptolemaic Graticule (رقّ سكندري ببطليموس) */
+.texture-vellum {
+  background-image:
+    linear-gradient(45deg, rgba(169, 134, 63, 0.05) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(169, 134, 63, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mix-blend-mode: multiply;
+}
+
+/* Texture 3: Islamic Medieval Laid Cotton Paper (ورق قطني مشرقي مدكوك) */
+.texture-laid-paper {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(169, 134, 63, 0.09) 0px,
+      rgba(169, 134, 63, 0.09) 1px,
+      transparent 1px,
+      transparent 28px
+    );
+  mix-blend-mode: multiply;
+}
+
+/* Texture 4: Modern Cadastral Lithograph Plate (طباعة حجرية مساحية ملكية) */
+.texture-lithograph {
+  background-image:
+    radial-gradient(circle, rgba(36, 29, 18, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+  mix-blend-mode: multiply;
+}
+
+/* Dynamic Paper Grain Noise */
+.document-tactile-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.35'/%3E%3C/svg%3E");
+  transition: opacity 400ms ease;
+}
+
+.historical-map-canvas.is-texture-shifting {
+  filter: none !important;
+}
+
 

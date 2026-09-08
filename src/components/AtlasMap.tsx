@@ -1,9 +1,130 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { motion, AnimatePresence } from 'motion/react';
 import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
 import { MODERN_EGYPT_BORDER } from '../data/modernEgyptBorder';
-import { Layers, Eye, Compass, Maximize2, X } from 'lucide-react';
+import { Layers, Eye, Compass, Maximize2, X, History, Scroll, Map as MapIcon, RotateCcw } from 'lucide-react';
+
+export type BaseMapStyle = 'voyager' | 'natgeo' | 'positron' | 'satellite';
+
+export interface BaseMapConfig {
+  id: BaseMapStyle;
+  name: string;
+  shortLabel: string;
+  url: string;
+  options: L.TileLayerOptions;
+  icon: string;
+}
+
+export const BASE_MAP_CONFIGS: Record<BaseMapStyle, BaseMapConfig> = {
+  voyager: {
+    id: 'voyager',
+    name: 'الخريطة الجغرافية الأصلية (ملونة)',
+    shortLabel: 'الأصلية',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    options: {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    },
+    icon: '🗺️'
+  },
+  natgeo: {
+    id: 'natgeo',
+    name: 'تضاريس ناشيونال جيوغرافيك (طبوغرافية)',
+    shortLabel: 'تضاريس',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
+    options: {
+      maxZoom: 16,
+      attribution: 'Tiles &copy; Esri &mdash; National Geographic'
+    },
+    icon: '🏔️'
+  },
+  positron: {
+    id: 'positron',
+    name: 'خريطة كلاسيكية هادئة (رمادية)',
+    shortLabel: 'كلاسيكية',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    options: {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+    },
+    icon: '📜'
+  },
+  satellite: {
+    id: 'satellite',
+    name: 'صور الأقمار الصناعية الفضائية',
+    shortLabel: 'أقمار صناعية',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    options: {
+      maxZoom: 18,
+      attribution: 'Tiles &copy; Esri'
+    },
+    icon: '🛰️'
+  }
+};
+
+export interface EraTextureInfo {
+  category: 'ancient' | 'greco_roman' | 'islamic_medieval' | 'modern';
+  name: string;
+  badge: string;
+  material: string;
+  eraName: string;
+  className: string;
+}
+
+/**
+ * Returns period-specific document texture and tactile grain metadata
+ * corresponding to authentic historical cartographic media used in Egypt.
+ */
+export function getEraTextureInfo(slide: SlideData): EraTextureInfo {
+  const period = slide.periodCategory || (
+    slide.id <= 6 ? 'ancient' :
+    slide.id <= 8 ? 'greco_roman' :
+    slide.id <= 13 ? 'islamic_medieval' : 'modern'
+  );
+
+  switch (period) {
+    case 'ancient':
+      return {
+        category: 'ancient',
+        name: 'بردي فرعوني أصيل',
+        badge: 'ألياف بردي ملكي',
+        material: 'ألياف نبات البردي ونقوش حجرية بارزة',
+        eraName: 'عصور الفراعنة (3100 - 332 ق.م)',
+        className: 'era-texture-ancient'
+      };
+    case 'greco_roman':
+      return {
+        category: 'greco_roman',
+        name: 'رقّ جلدي سكندري',
+        badge: 'رقّ ومربعات بطليموس',
+        material: 'رقّ كلاسيكي وشبكة خطوط بطليموس الفلكية',
+        eraName: 'العصر البطلمي والروماني (332 ق.م - 641 م)',
+        className: 'era-texture-greco_roman'
+      };
+    case 'islamic_medieval':
+      return {
+        category: 'islamic_medieval',
+        name: 'ورق قطني مشرقي مدكوك',
+        badge: 'ورق إسلامي موشى',
+        material: 'قالب سمرقندي مدكوك وموشى بصبغة الزعفران',
+        eraName: 'العصور الإسلامية والوسيطة (641 - 1798 م)',
+        className: 'era-texture-islamic_medieval'
+      };
+    case 'modern':
+    default:
+      return {
+        category: 'modern',
+        name: 'طباعة حجرية مساحية',
+        badge: 'أطلس المساحة 1928',
+        material: 'تنقيط طباعة حجرية وألواح نحاسية محفورة',
+        eraName: 'عصر النهضة الحديثة والمعاصرة',
+        className: 'era-texture-modern'
+      };
+  }
+}
 
 /**
  * Bulletproof camera transition helper.
@@ -152,84 +273,250 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
   // Transition refs for smooth CSS fade-in/out layer updates
   const isInitialRenderRef = useRef<boolean>(true);
+  const prevEraIdRef = useRef<number>(currentSlide.id);
   const eraTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const eraFadeInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const temporalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textureShiftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showEraToast, setShowEraToast] = useState<boolean>(false);
+  const [isTemporalFading, setIsTemporalFading] = useState<boolean>(false);
+  const [temporalDirection, setTemporalDirection] = useState<'forward' | 'backward'>('forward');
+  const [showTexture, setShowTexture] = useState<boolean>(false); // False by default so the original map is 100% visible and unclouded
+  const [isTextureShifting, setIsTextureShifting] = useState<boolean>(false);
+  const [baseMapStyle, setBaseMapStyle] = useState<BaseMapStyle>('voyager');
+  const baseTileLayerRef = useRef<L.TileLayer | null>(null);
 
-  // Initialize Map
+  // State-based loading check: verify container exists after mount before calling L.map()
+  const [isContainerReady, setIsContainerReady] = useState<boolean>(false);
+  const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
+
+  // Step 1: Ensure component is mounted and verify the container element exists and is connected to DOM
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-    if (mapInstanceRef.current) return;
+    let isMounted = true;
+
+    const verifyContainer = () => {
+      if (!isMounted) return;
+      const el = mapContainerRef.current;
+      if (el && (document.body.contains(el) || el.isConnected)) {
+        setIsContainerReady(true);
+      } else {
+        requestAnimationFrame(verifyContainer);
+      }
+    };
+
+    verifyContainer();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Trigger smooth era toast badge, Temporal Fade & tactile texture shifting on era changes
+  useEffect(() => {
+    if (!isInitialRenderRef.current) {
+      const prevId = prevEraIdRef.current;
+      const direction = currentSlide.id >= prevId ? 'forward' : 'backward';
+      prevEraIdRef.current = currentSlide.id;
+      setTemporalDirection(direction);
+
+      // Activate CSS Temporal Fade overlay filter
+      setIsTemporalFading(true);
+      if (temporalTimerRef.current) clearTimeout(temporalTimerRef.current);
+      temporalTimerRef.current = setTimeout(() => {
+        setIsTemporalFading(false);
+      }, 850);
+
+      // Tactile grain pulse to simulate unfurling a new historical manuscript
+      setIsTextureShifting(true);
+      if (textureShiftTimerRef.current) clearTimeout(textureShiftTimerRef.current);
+      textureShiftTimerRef.current = setTimeout(() => {
+        setIsTextureShifting(false);
+      }, 750);
+
+      setShowEraToast(true);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => {
+        setShowEraToast(false);
+      }, 1900);
+    }
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (temporalTimerRef.current) clearTimeout(temporalTimerRef.current);
+      if (textureShiftTimerRef.current) clearTimeout(textureShiftTimerRef.current);
+    };
+  }, [currentSlide.id]);
+
+  // Step 2: Initialize Map only after state-based container check confirms container exists in DOM
+  useEffect(() => {
+    if (!isContainerReady) return;
 
     const container = mapContainerRef.current;
+    // Verify container existence and attachment
+    if (!container || (!document.body.contains(container) && !container.isConnected)) {
+      return;
+    }
+
+    // 1. Prevent "Map container is already initialized" error:
+    // If an existing map instance is stored in mapInstanceRef, clean it up completely first
+    if (mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.remove();
+      } catch (err) {
+        console.warn('Leaflet: cleanup previous map instance error:', err);
+      }
+      mapInstanceRef.current = null;
+    }
+
+    // 2. Clear any lingering _leaflet_id stamped on the DOM container by Leaflet
     if ((container as any)._leaflet_id) {
       delete (container as any)._leaflet_id;
     }
 
-    const map = L.map(container, {
-      zoomControl: false,
-      attributionControl: true,
-      minZoom: 3,
-      maxZoom: 13
-    }).setView([26.8, 30.8], 5);
+    // 3. Clear any leftover DOM child nodes inside container to avoid DOM collision
+    container.innerHTML = '';
 
-    // Zoom control on bottom left
-    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    let map: L.Map | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let handleWindowResize: (() => void) | null = null;
+    let rafId: number | null = null;
+    let timer1: ReturnType<typeof setTimeout> | null = null;
+    let timer2: ReturnType<typeof setTimeout> | null = null;
 
-    // Default Tile layer (OpenStreetMap reliable tiles)
-    const baseTileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19
-    }).addTo(map);
+    try {
+      map = L.map(container, {
+        zoomControl: false,
+        attributionControl: true,
+        minZoom: 3,
+        maxZoom: 13
+      }).setView([26.8, 30.8], 5);
 
-    // Dedicated panes for historical era layers with CSS transition support
-    const historicalOverlayPane = map.createPane('historicalOverlayPane');
-    historicalOverlayPane.style.zIndex = '450';
-    historicalOverlayPane.classList.add('historical-layer-fade', 'era-fade-in');
+      // Zoom control on bottom left
+      L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    const historicalMarkerPane = map.createPane('historicalMarkerPane');
-    historicalMarkerPane.style.zIndex = '620';
-    historicalMarkerPane.classList.add('historical-layer-fade', 'era-fade-in');
+      // Initial Base Tile Layer: CartoDB Voyager or user selected style
+      const initialConfig = BASE_MAP_CONFIGS[baseMapStyle] || BASE_MAP_CONFIGS['voyager'];
+      const baseLayer = L.tileLayer(initialConfig.url, initialConfig.options).addTo(map);
+      baseTileLayerRef.current = baseLayer;
 
-    const modernBorderPane = map.createPane('modernBorderPane');
-    modernBorderPane.style.zIndex = '480';
+      // Dedicated panes for historical era layers with CSS transition support
+      const historicalOverlayPane = map.createPane('historicalOverlayPane');
+      historicalOverlayPane.style.zIndex = '450';
+      historicalOverlayPane.classList.add('historical-layer-fade', 'era-fade-in');
 
-    outpostsLayerRef.current = L.layerGroup().addTo(map);
-    landmarksLayerRef.current = L.layerGroup().addTo(map);
+      const historicalMarkerPane = map.createPane('historicalMarkerPane');
+      historicalMarkerPane.style.zIndex = '620';
+      historicalMarkerPane.classList.add('historical-layer-fade', 'era-fade-in');
 
-    mapInstanceRef.current = map;
+      const modernBorderPane = map.createPane('modernBorderPane');
+      modernBorderPane.style.zIndex = '480';
 
-    // ResizeObserver ensures Leaflet updates viewport when container layout changes
-    const resizeObserver = new ResizeObserver(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+      outpostsLayerRef.current = L.layerGroup().addTo(map);
+      landmarksLayerRef.current = L.layerGroup().addTo(map);
+
+      mapInstanceRef.current = map;
+      setIsMapLoaded(true);
+
+      // ResizeObserver ensures Leaflet updates viewport when container layout changes
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        });
+        resizeObserver.observe(container);
+      } else {
+        handleWindowResize = () => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        };
+        window.addEventListener('resize', handleWindowResize);
       }
-    });
-    resizeObserver.observe(container);
 
-    // Additional invalidateSize calls on mount
-    const timer1 = setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+      // Additional staggered invalidateSize calls across browser layout cycles
+      rafId = requestAnimationFrame(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+
+      timer1 = setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
+
+      timer2 = setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 400);
+
+    } catch (error) {
+      console.error('Error initializing Leaflet map on container:', error);
+      if (map) {
+        try {
+          map.remove();
+        } catch {
+          // ignore
+        }
       }
-    }, 100);
+      mapInstanceRef.current = null;
+      setIsMapLoaded(false);
+    }
 
-    const timer2 = setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    }, 400);
-
+    // Effect cleanup: Guaranteed to be returned outside of try/catch to ensure proper disposal on unmount/re-render
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      resizeObserver.disconnect();
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (timer1) clearTimeout(timer1);
+      if (timer2) clearTimeout(timer2);
+      if (resizeObserver) resizeObserver.disconnect();
+      if (handleWindowResize) window.removeEventListener('resize', handleWindowResize);
+
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch (err) {
+          console.warn('Error during Leaflet map cleanup:', err);
+        }
         mapInstanceRef.current = null;
       }
+
+      if (container && (container as any)._leaflet_id) {
+        delete (container as any)._leaflet_id;
+      }
+
+      baseTileLayerRef.current = null;
+      coreLayerRef.current = null;
+      secondaryLayerRef.current = null;
+      outpostsLayerRef.current = null;
+      landmarksLayerRef.current = null;
+      capitalMarkerRef.current = null;
+      modernBorderLayerRef.current = null;
+
+      setIsMapLoaded(false);
     };
-  }, []);
+  }, [isContainerReady]);
+
+  // Dynamically update base tile layer when user switches style
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !isMapLoaded) return;
+
+    if (baseTileLayerRef.current) {
+      map.removeLayer(baseTileLayerRef.current);
+      baseTileLayerRef.current = null;
+    }
+
+    const config = BASE_MAP_CONFIGS[baseMapStyle];
+    const newTileLayer = L.tileLayer(config.url, config.options).addTo(map);
+    if ((newTileLayer as any).bringToBack) {
+      (newTileLayer as any).bringToBack();
+    }
+    baseTileLayerRef.current = newTileLayer;
+  }, [baseMapStyle, isMapLoaded]);
 
   // Update map features whenever currentSlide changes with smooth CSS transition fade-in/out
   useEffect(() => {
@@ -482,12 +769,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       if (frameTimerRef.current) clearTimeout(frameTimerRef.current);
     };
 
-  }, [currentSlide]);
+  }, [currentSlide, isMapLoaded]);
 
   // Dedicated effect for frontier landmarks: toggling updates landmarks layer directly without resetting camera view or re-rendering entire era
   useEffect(() => {
     const layer = landmarksLayerRef.current;
-    if (!layer) return;
+    if (!layer || !isMapLoaded) return;
 
     layer.clearLayers();
 
@@ -528,12 +815,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         layer.addLayer(marker);
       });
     }
-  }, [showFrontierLandmarks, currentSlide]);
+  }, [showFrontierLandmarks, currentSlide, isMapLoaded]);
 
   // Handle Modern Border Overlay toggle
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    if (!map || !isMapLoaded) return;
 
     if (showModernBorder) {
       if (!modernBorderLayerRef.current) {
@@ -562,7 +849,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         modernBorderLayerRef.current = null;
       }
     }
-  }, [showModernBorder]);
+  }, [showModernBorder, isMapLoaded]);
 
   // Re-center handler
   const handleRecenter = () => {
@@ -603,15 +890,82 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     safeFlyToBounds(map, boundsPoints, fallback);
   };
 
+  // Immediate reset to original crisp base map with no texture
+  const handleResetOriginalMap = () => {
+    setBaseMapStyle('voyager');
+    setShowTexture(false);
+    handleRecenter();
+  };
+
+  const textureInfo = getEraTextureInfo(currentSlide);
+
   return (
     <div className="relative w-full h-full min-h-[160px] md:min-h-[260px] overflow-hidden">
-      {/* Map Container */}
+      {/* Map Container with dynamic temporal shift filter & historical document grading */}
       <div
         ref={mapContainerRef}
         id="historical-leaflet-map"
         dir="ltr"
-        className="w-full h-full z-0"
+        className={`w-full h-full z-0 historical-map-canvas ${textureInfo.className} ${
+          !showTexture ? 'era-texture-disabled' : ''
+        } ${isTemporalFading ? 'is-temporal-shifting' : ''} ${
+          isTextureShifting ? 'is-texture-shifting' : ''
+        }`}
       />
+
+      {/* State-based loading check: Loading indicator while container and Leaflet map instance initialize */}
+      {!isMapLoaded && (
+        <div
+          id="map-loading-indicator"
+          className="absolute inset-0 z-[1050] flex flex-col items-center justify-center bg-[#f5f0e3] transition-opacity duration-300 pointer-events-none select-none"
+        >
+          <div className="w-8 h-8 border-3 border-[#8a3b24] border-t-transparent rounded-full animate-spin mb-2.5 shadow-sm" />
+          <span className="text-xs font-serif font-bold text-[#752612] tracking-wide">
+            جاري تهيئة الخريطة التاريخية...
+          </span>
+        </div>
+      )}
+
+      {/* Historical Document Texture & Tactile Paper Grain Overlays */}
+      {showTexture && (
+        <div
+          className={`historical-texture-overlay-master pointer-events-none ${
+            isTextureShifting ? 'is-texture-shifting' : ''
+          }`}
+          aria-hidden="true"
+        >
+          {/* 1. Ancient Egyptian Papyrus (بردي فرعوني أصيل) */}
+          <div
+            className={`historical-texture-sublayer texture-papyrus ${
+              textureInfo.category === 'ancient' ? 'is-active' : ''
+            }`}
+          />
+
+          {/* 2. Alexandrian Vellum & Ptolemaic Graticule (رقّ سكندري ببطليموس) */}
+          <div
+            className={`historical-texture-sublayer texture-vellum ${
+              textureInfo.category === 'greco_roman' ? 'is-active' : ''
+            }`}
+          />
+
+          {/* 3. Islamic & Medieval Laid Cotton Paper (ورق قطني مشرقي مدكوك) */}
+          <div
+            className={`historical-texture-sublayer texture-laid-paper ${
+              textureInfo.category === 'islamic_medieval' ? 'is-active' : ''
+            }`}
+          />
+
+          {/* 4. Modern Cadastral Lithograph Plate (طباعة حجرية مساحية ملكية) */}
+          <div
+            className={`historical-texture-sublayer texture-lithograph ${
+              textureInfo.category === 'modern' ? 'is-active' : ''
+            }`}
+          />
+
+          {/* Tactile paper grain noise */}
+          <div className="document-tactile-grain" />
+        </div>
+      )}
 
       {/* Atmospheric Era Transition Veil (Fade-in/Fade-out between historical eras) */}
       <AnimatePresence mode="popLayout">
@@ -625,10 +979,57 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         />
       </AnimatePresence>
 
-      {/* Floating Legend & Map Controls Bar */}
+      {/* Temporal Fade (CSS Overlay Filter): Simulates historical time passage during era shifts */}
+      {isTemporalFading && (
+        <div
+          key={`temporal-fade-overlay-${currentSlide.id}`}
+          className="temporal-fade-overlay"
+          aria-hidden="true"
+        >
+          {/* Central Rotating Astrolabe / Chronograph Rings */}
+          <div className="temporal-chronograph-ring" />
+
+          {/* Antique Parchment Grain Texture */}
+          <div className="temporal-parchment-grain" />
+
+          {/* Centered Temporal Passage Pill */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="flex items-center gap-2 bg-[#101713]/90 text-[#fdfbf7] px-4 py-1.5 rounded-full border border-[#a9863f]/70 shadow-2xl backdrop-blur-md">
+              <History className="w-3.5 h-3.5 text-[#f2b880] animate-spin" />
+              <span className="text-xs font-serif font-bold text-[#f2b880]">
+                {temporalDirection === 'forward' ? 'انتقال زمني للأمام' : 'رجوع عبر العصور'}
+              </span>
+              <span className="text-[11px] font-mono text-[#e9e0c7] border-r border-[#a9863f]/40 pr-2">
+                {currentSlide.date}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Atmospheric temporal shift flash across map during era change */}
+      {showEraToast && (
+        <>
+          <div key={`map-sheen-${currentSlide.id}`} className="map-temporal-sheen" />
+          <div
+            key={`map-toast-${currentSlide.id}`}
+            className="era-map-toast absolute top-3 left-1/2 -translate-x-1/2 z-[480] bg-[#101713]/95 text-[#fdfbf7] backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#a9863f]/60 shadow-2xl flex items-center gap-2 pointer-events-none"
+          >
+            <span className="w-2 h-2 rounded-full bg-[#8a3b24] animate-ping shrink-0" />
+            <span className="text-xs font-serif font-bold text-[#f2b880]">{currentSlide.headline}</span>
+            {currentSlide.date && (
+              <span className="text-[10.5px] text-[#e9e0c7]/90 font-sans border-r border-[#a9863f]/40 pr-2">
+                {currentSlide.date}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* زر وحيد موحد لخيارات ودليل الخريطة (بدلاً من زحمة الأزرار العلوية) */}
       {!showLegend ? (
         <button
-          id="show-legend-btn"
+          id="unified-map-menu-btn"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
@@ -636,12 +1037,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
             e.stopPropagation();
             onToggleLegend();
           }}
-          title="إظهار دليل الخريطة التاريخية"
-          className="absolute top-3.5 right-3.5 z-[1050] bg-[#e9e0c7] hover:bg-[#ded1ab] active:scale-95 text-[#8a3b24] text-xs font-serif font-bold px-3.5 py-2.5 rounded-lg shadow-xl border-2 border-[#8a3b24]/50 flex items-center gap-2 transition-all cursor-pointer select-none"
+          title="خيارات ودليل الخريطة"
+          className="absolute top-3 right-3 z-[1050] bg-[#fbf8f0]/95 hover:bg-[#f2ece0] active:scale-95 text-[#752612] text-xs font-serif font-bold px-3 py-1.5 rounded-lg shadow-xl border border-[#cbbd95] flex items-center gap-1.5 transition-all cursor-pointer select-none backdrop-blur-md"
         >
           <Compass className="w-4 h-4 text-[#8a3b24]" />
-          <span>إظهار دليل الخريطة</span>
-          <Eye className="w-4 h-4 text-[#8a3b24]" />
+          <span>خيارات ودليل الخريطة</span>
+          <Layers className="w-3.5 h-3.5 text-[#8a3b24]" />
         </button>
       ) : (
         <div
@@ -649,14 +1050,15 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="absolute top-3.5 right-3.5 z-[1050] bg-[#e9e0c7]/95 backdrop-blur-sm text-[#241d12] text-xs p-3.5 rounded-lg shadow-xl border border-[#c9bd97] max-w-[280px] select-none transition-all"
+          className="absolute top-3 right-3 z-[1050] bg-[#fbf8f0]/95 backdrop-blur-md text-[#17120a] text-xs p-3 rounded-xl shadow-2xl border border-[#cbbd95] w-[calc(100%-24px)] max-w-[300px] max-h-[calc(100%-24px)] overflow-y-auto select-none transition-all"
         >
-          <div className="flex items-center justify-between border-b border-[#c9bd97]/60 pb-2 mb-2.5 gap-2">
-            <div className="font-serif font-bold text-sm text-[#8a3b24] flex items-center gap-1.5">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[#cbbd95] pb-2 mb-2.5 gap-2">
+            <div className="font-serif font-bold text-sm text-[#752612] flex items-center gap-1.5">
               <Compass className="w-4 h-4 text-[#8a3b24]" />
-              <span>دليل الخريطة التاريخية</span>
+              <span>خيارات ودليل الخريطة</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <button
                 id="recenter-map-btn"
                 onPointerDown={(e) => e.stopPropagation()}
@@ -667,7 +1069,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
                   handleRecenter();
                 }}
                 title="إعادة ضبط إطار الرؤية للمنطقة"
-                className="p-1 hover:bg-[#d9cfae] rounded text-[#4a4130] transition-colors flex items-center justify-center cursor-pointer"
+                className="p-1 hover:bg-[#eae2ce] rounded text-[#2a2216] transition-colors flex items-center justify-center cursor-pointer"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
               </button>
@@ -680,46 +1082,99 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
                   e.stopPropagation();
                   onToggleLegend();
                 }}
-                title="إخفاء دليل الخريطة"
-                className="px-2 py-1 bg-[#8a3b24]/10 hover:bg-[#8a3b24] hover:text-white rounded text-[#8a3b24] font-medium text-[11px] transition-all flex items-center gap-1 cursor-pointer border border-[#8a3b24]/20"
+                title="إغلاق خيارات الخريطة"
+                className="p-1 hover:bg-[#8a3b24] hover:text-white rounded text-[#752612] transition-colors flex items-center justify-center cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
-                <span>إخفاء</span>
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Legend swatches */}
-          <div className="space-y-1.5 text-[11.5px] leading-tight">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[#8a3b24] opacity-80 shrink-0 border border-[#8a3b24]"></span>
-              <span className="font-medium">المساحة السيادية الأساسية</span>
+          {/* القسم 1: نوع الخريطة الأساسية */}
+          <div className="mb-2.5 pb-2 border-b border-[#cbbd95]/70">
+            <div className="text-[11px] font-bold text-[#752612] mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <MapIcon className="w-3.5 h-3.5 text-[#8a3b24]" />
+                <span>نوع الخريطة</span>
+              </span>
+              {(baseMapStyle !== 'voyager' || showTexture) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResetOriginalMap();
+                  }}
+                  className="text-[10px] text-[#8a3b24] hover:underline font-bold cursor-pointer flex items-center gap-0.5"
+                  title="استعادة الخريطة الملونة الأصلية"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>الخريطة الأصلية</span>
+                </button>
+              )}
             </div>
-
-            {currentSlide.extent?.secondary && (
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-sm bg-[#3f6259] opacity-75 shrink-0 border border-dashed border-[#3f6259]"></span>
-                <span className="text-[#3f6259] font-medium">{currentSlide.extent.secondaryLabel || 'إقليم تابع / سيادة ثانوية'}</span>
-              </div>
-            )}
-
-            {currentSlide.extent?.outposts && currentSlide.extent.outposts.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#f7f4ea] border-2 border-[#a9863f] shrink-0"></span>
-                <span>محطات وثغور خارجية منفصلة</span>
-              </div>
-            )}
-
-            {currentSlide.capital && (
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#8a3b24] border border-[#e9e0c7] flex items-center justify-center text-[8px] text-white font-bold shrink-0">★</span>
-                <span>العاصمة والقلب الإداري</span>
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-1">
+              {(Object.keys(BASE_MAP_CONFIGS) as BaseMapStyle[]).map((styleKey) => {
+                const cfg = BASE_MAP_CONFIGS[styleKey];
+                const isActive = baseMapStyle === styleKey;
+                return (
+                  <button
+                    key={styleKey}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBaseMapStyle(styleKey);
+                    }}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10.5px] font-medium border transition-colors cursor-pointer ${
+                      isActive
+                        ? 'bg-[#8a3b24] text-white border-[#8a3b24] shadow-sm font-bold'
+                        : 'bg-[#f4efe1]/80 text-[#3d3224] border-[#d8ccb0] hover:bg-[#eae2ce]'
+                    }`}
+                  >
+                    <span>{cfg.icon}</span>
+                    <span className="truncate">{cfg.shortLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Interactive Layer Toggles */}
-          <div className="mt-2.5 pt-2 border-t border-[#c9bd97]/60 space-y-1.5">
+          {/* القسم 2: طبقات العرض والنسيج التاريخي */}
+          <div className="mb-2.5 pb-2 border-b border-[#cbbd95]/70 space-y-1.5">
+            <div className="text-[11px] font-bold text-[#752612] flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-[#8a3b24]" />
+              <span>طبقات العرض التفاعلية</span>
+            </div>
+
+            {/* Toggle Historical Document Texture */}
+            <button
+              id="toggle-texture-btn"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTexture((prev) => !prev);
+              }}
+              className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
+                showTexture
+                  ? 'bg-[#8a3b24]/10 border-[#8a3b24]/35 text-[#752612]'
+                  : 'bg-transparent border-[#cbbd95] text-[#2a2216] hover:bg-[#eae2ce]'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <Scroll className="w-3 h-3 text-[#8a3b24]" />
+                <span>نسيج الوثيقة ({textureInfo.badge})</span>
+              </span>
+              <span
+                className={`text-[10px] px-1 py-0.5 rounded font-bold ${
+                  showTexture ? 'bg-[#8a3b24] text-white' : 'bg-[#d8ccb0] text-[#17120a]'
+                }`}
+              >
+                {showTexture ? 'مفعّل' : 'معطّل'}
+              </span>
+            </button>
+
+            {/* Toggle Modern Egypt Border */}
             <button
               id="toggle-modern-border-btn"
               onPointerDown={(e) => e.stopPropagation()}
@@ -732,18 +1187,19 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
               className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
                 showModernBorder
                   ? 'bg-[#0d9488]/15 border-[#0d9488] text-[#0f766e]'
-                  : 'bg-transparent border-[#c9bd97] text-[#4a4130] hover:bg-[#d9cfae]/50'
+                  : 'bg-transparent border-[#cbbd95] text-[#2a2216] hover:bg-[#eae2ce]'
               }`}
             >
               <span className="flex items-center gap-1.5">
                 <Layers className="w-3 h-3" />
-                <span>مقارنة مع حدود مصر المعاصرة</span>
+                <span>مقارنة بحدود مصر المعاصرة 1989</span>
               </span>
-              <span className={`text-[10px] px-1 py-0.5 rounded ${showModernBorder ? 'bg-[#0d9488] text-white' : 'bg-[#c9bd97] text-[#241d12]'}`}>
+              <span className={`text-[10px] px-1 py-0.5 rounded font-bold ${showModernBorder ? 'bg-[#0d9488] text-white' : 'bg-[#d8ccb0] text-[#17120a]'}`}>
                 {showModernBorder ? 'مفعّل' : 'معطّل'}
               </span>
             </button>
 
+            {/* Toggle Frontier Landmarks */}
             {currentSlide.extent?.frontierLandmarks && currentSlide.extent.frontierLandmarks.length > 0 && (
               <button
                 id="toggle-landmarks-btn"
@@ -768,9 +1224,39 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
             )}
           </div>
 
-          {/* Clarification note */}
-          <div className="mt-2 text-[10px] text-[#6e5d42] leading-snug border-t border-[#c9bd97]/40 pt-1.5 flex items-center justify-between">
-            <span>ⓘ الحدود تقريبية ومبنية على معالم تاريخية.</span>
+          {/* القسم 3: مفتاح ودليل الخريطة */}
+          <div className="space-y-1.5 text-[11.5px] leading-tight text-[#17120a] mb-2.5">
+            <div className="text-[11px] font-bold text-[#752612] mb-1">دليل الرموز:</div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-sm bg-[#8a3b24] opacity-80 shrink-0 border border-[#8a3b24]"></span>
+              <span className="font-bold">المساحة السيادية الأساسية</span>
+            </div>
+
+            {currentSlide.extent?.secondary && (
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm bg-[#3f6259] opacity-75 shrink-0 border border-dashed border-[#3f6259]"></span>
+                <span className="text-[#14382f] font-bold">{currentSlide.extent.secondaryLabel || 'إقليم تابع / سيادة ثانوية'}</span>
+              </div>
+            )}
+
+            {currentSlide.extent?.outposts && currentSlide.extent.outposts.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#fbf8f0] border-2 border-[#a9863f] shrink-0"></span>
+                <span className="font-medium">محطات وثغور خارجية منفصلة</span>
+              </div>
+            )}
+
+            {currentSlide.capital && (
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#8a3b24] border border-[#fbf8f0] flex items-center justify-center text-[8px] text-white font-bold shrink-0">★</span>
+                <span className="font-medium">العاصمة والقلب الإداري</span>
+              </div>
+            )}
+          </div>
+
+          {/* Clarification & Close button */}
+          <div className="border-t border-[#cbbd95]/70 pt-2 flex items-center justify-between text-[10px] text-[#6e5d42]">
+            <span>ⓘ الحدود تقريبية مبنية على معالم تاريخية.</span>
             <button
               id="hide-legend-text-btn"
               onPointerDown={(e) => e.stopPropagation()}
@@ -780,9 +1266,9 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
                 e.stopPropagation();
                 onToggleLegend();
               }}
-              className="text-[#8a3b24] hover:underline cursor-pointer shrink-0 mr-1 font-bold"
+              className="text-[#8a3b24] bg-[#8a3b24]/10 hover:bg-[#8a3b24] hover:text-white px-2 py-0.5 rounded cursor-pointer shrink-0 font-bold transition-colors"
             >
-              إخفاء الدليل
+              إغلاق
             </button>
           </div>
         </div>
