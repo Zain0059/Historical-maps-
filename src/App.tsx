@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ALL_SLIDES } from './data/historicalData';
+import { getReviewedSlide } from './data/boundaryReview';
 import { PeriodCategory } from './types';
 import { Header } from './components/Header';
 import { AtlasMap } from './components/AtlasMap';
@@ -16,7 +17,8 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<PeriodCategory | 'all'>('all');
   const [narrativeTab, setNarrativeTab] = useState<'narrative' | 'statistics'>('narrative');
 
-  const currentSlide = ALL_SLIDES[currentIndex];
+  const [phaseByEra, setPhaseByEra] = useState<Record<number, string>>({});
+  const currentSlide = useMemo(() => getReviewedSlide(ALL_SLIDES[currentIndex], phaseByEra[ALL_SLIDES[currentIndex].id]), [currentIndex, phaseByEra]);
 
   const handlePrev = useCallback(() => {
     setCurrentIndex(prev => Math.max(0, prev - 1));
@@ -106,6 +108,7 @@ export default function App() {
         >
           <NarrativePanel
             slide={currentSlide}
+            onSelectPhase={id => setPhaseByEra(prev => ({...prev, [currentSlide.id]: id}))}
             activeTab={narrativeTab}
             onTabChange={setNarrativeTab}
             onSelectSlideIndex={(idx) => setCurrentIndex(idx)}

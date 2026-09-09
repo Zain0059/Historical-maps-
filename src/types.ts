@@ -13,6 +13,9 @@ export type ControlType =
   | 'maritime_zone';
 
 export interface ControlFeature {
+  polygons?: [number, number][][][];
+  sourceIds?: string[];
+  certainty?: 'schematic' | 'generalized';
   type: ControlType;
   name?: string;
   label?: string;
@@ -23,7 +26,7 @@ export interface ControlFeature {
   color?: string;
   fillColor?: string;
   coords?: [number, number][];
-  geometryType?: 'polygon' | 'line';
+  geometryType?: 'polygon' | 'line' | 'point';
 }
 
 export interface OutpostPoint {
@@ -66,6 +69,8 @@ export interface EraExtent {
 }
 
 export interface SlideData {
+  boundaryReview?: import('./data/boundaryReview').BoundaryReview;
+  boundaryPhase?: import('./data/boundaryReview').BoundaryPhase;
   id: number;
   type?: 'overview' | 'era';
   date: string;
@@ -98,4 +103,3 @@ export interface SlideData {
   };
   sources?: string[];
 }
-
