@@ -73,4 +73,10 @@ for (const result of [megiddo,ramesside]) {
 }
 const barkalPoint=ramesside.extent!.controlFeatures!.find(f=>f.geometryType==='point')!.coords![0];
 assert.ok(barkalPoint[0]>18.53&&barkalPoint[0]<18.54&&barkalPoint[1]>31.82&&barkalPoint[1]<31.84,'Keep UNESCO site coordinates in latitude/longitude order');
+const saite=ALL_SLIDES.find(s=>s.id===7)!;
+assert.equal(getReviewedSlide(saite).boundaryPhase?.id,'saite-550');
+const raid=getReviewedSlide(saite,'saite-593').extent!.controlFeatures!;
+assert.ok(raid.some(f=>f.type==='campaign'&&f.geometryType==='point'));
+assert.ok(!getReviewedSlide(saite,'saite-550').extent!.controlFeatures!.some(f=>f.type==='campaign'));
+for(const slide of ALL_SLIDES) assert.equal(getReviewedSlide(slide).geographicalStats,undefined,'Do not present unverified maximum reach as geographic fact');
 console.log('Boundary audit coverage, phase isolation, source references, coordinates, and dispute semantics passed.');
