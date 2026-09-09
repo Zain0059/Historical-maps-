@@ -3,7 +3,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'motion/react';
 import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
-import { MODERN_EGYPT_BORDER } from '../data/modernEgyptBorder';
+import { MODERN_REFERENCE, MODERN_DISPUTES } from '../data/boundaryReview';
+import { drawBoundaryFeatures, featurePoints } from '../lib/boundaryLayers';
 import { Layers, Eye, Compass, Maximize2, X, History, Map as MapIcon, RotateCcw } from 'lucide-react';
 
 // Fix standard Leaflet default marker icon paths if standard markers are ever referenced
@@ -256,7 +257,8 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   const outpostsLayerRef = useRef<L.LayerGroup | null>(null);
   const landmarksLayerRef = useRef<L.LayerGroup | null>(null);
   const capitalMarkerRef = useRef<L.Marker | null>(null);
-  const modernBorderLayerRef = useRef<L.Polygon | null>(null);
+  const modernBorderLayerRef = useRef<L.FeatureGroup | null>(null);
+  const controlLayersRef = useRef<L.FeatureGroup | null>(null);
 
   // Transition refs for smooth CSS fade-in/out layer updates
   const isInitialRenderRef = useRef<boolean>(true);
@@ -521,6 +523,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
     // Function to clear old layers and mount the new era features
     const renderEraFeatures = () => {
+      if (controlLayersRef.current) { map.removeLayer(controlLayersRef.current); controlLayersRef.current = null; }
       // 1. Clear previous layers
       if (coreLayerRef.current) {
         map.removeLayer(coreLayerRef.current);
@@ -581,8 +584,9 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
             pane: 'historicalOverlayPane',
             color: '#8a3b24',
             weight: 2.5,
+            dashArray: currentSlide.boundaryReview ? '2 7' : undefined,
             fillColor: '#8a3b24',
-            fillOpacity: 0.22,
+            fillOpacity: currentSlide.boundaryReview ? 0.07 : 0.22,
             lineCap: 'round',
             lineJoin: 'round'
           }).addTo(map);
@@ -608,11 +612,11 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         if (validSec.length > 0) {
           const secPoly = L.polygon(validSec, {
             pane: 'historicalOverlayPane',
-            color: '#3f6259',
+            color: currentSlide.boundaryReview ? '#6d28d9' : '#3f6259',
             weight: 2,
-            dashArray: '6, 6',
-            fillColor: '#3f6259',
-            fillOpacity: 0.18,
+            dashArray: currentSlide.boundaryReview ? '2 7' : '6, 6',
+            fillColor: currentSlide.boundaryReview ? '#6d28d9' : '#3f6259',
+            fillOpacity: currentSlide.boundaryReview ? 0.07 : 0.18,
             lineCap: 'round',
             lineJoin: 'round'
           }).addTo(map);
@@ -627,6 +631,11 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           secondaryLayerRef.current = secPoly;
           validSec.forEach(pt => boundsPoints.push(pt));
         }
+      }
+
+      if (extent?.controlFeatures) {
+        controlLayersRef.current = drawBoundaryFeatures(extent.controlFeatures).addTo(map);
+        extent.controlFeatures.forEach(f => boundsPoints.push(...featurePoints(f)));
       }
 
       // 4. Draw Outposts (Golden dots #a9863f)
@@ -827,24 +836,10 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
     if (showModernBorder) {
       if (!modernBorderLayerRef.current) {
-        const poly = L.polygon(MODERN_EGYPT_BORDER, {
-          pane: 'modernBorderPane',
-          color: '#0d9488',
-          weight: 2,
-          dashArray: '4, 6',
-          fillColor: '#0d9488',
-          fillOpacity: 0.08,
-          interactive: true
-        }).addTo(map);
-
-        poly.bindTooltip('<div class="historical-tooltip-content" dir="rtl"><span class="font-sans text-xs font-bold text-[#0f766e] text-right block" style="white-space: normal; max-width: 200px;">حدود جمهورية مصر العربية المعاصرة (1989)</span></div>', {
-          sticky: true,
-          direction: 'top',
-          offset: [0, -10],
-          className: 'historical-tooltip'
-        });
-
-        modernBorderLayerRef.current = poly;
+        modernBorderLayerRef.current = drawBoundaryFeatures([
+          {type:'direct_administration',name:'مرجع معاصر للمقارنة فقط — Natural Earth',polygons:MODERN_REFERENCE,color:'#0d9488',certainty:'generalized',sourceIds:['ne']},
+          ...MODERN_DISPUTES
+        ], 'modernBorderPane').addTo(map);
       }
     } else {
       if (modernBorderLayerRef.current) {
@@ -860,6 +855,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     if (!map) return;
 
     const boundsPoints: [number, number][] = [];
+    currentSlide.extent?.controlFeatures?.forEach(f => boundsPoints.push(...featurePoints(f)));
     if (currentSlide.extent?.core) {
       currentSlide.extent.core.forEach(p => {
         if (Array.isArray(p) && p.length >= 2 && !isNaN(p[0]) && isFinite(p[0]) && !isNaN(p[1]) && isFinite(p[1])) {
@@ -909,6 +905,10 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         className="absolute inset-0 w-full h-full z-0 historical-map-canvas"
       />
 
+      {currentSlide.boundaryReview && <div className="absolute left-2 top-2 z-[490] max-w-[43%] bg-white/95 border border-stone-400 p-1.5 rounded text-[10px] text-stone-900 pointer-events-none" dir="rtl">
+        {currentSlide.boundaryPhase?.label ?? (currentSlide.boundaryReview.status==='schematic'?'ترسيم سابق غير محقق':'مرجع معاصر معمّم')}
+        <div>▧ نزاع · ⋯ عدم يقين</div>
+      </div>}
       {/* State-based loading check: Loading indicator while container and Leaflet map instance initialize */}
       {!isMapLoaded && (
         <div
@@ -1150,9 +1150,14 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           {/* القسم 3: مفتاح ودليل الخريطة */}
           <div className="space-y-1.5 text-[11.5px] leading-tight text-[#17120a] mb-2.5">
             <div className="text-[11px] font-bold text-[#752612] mb-1">دليل الرموز:</div>
+            <div>▧ أحمر مخطط: نزاع أو مطالبات متعارضة</div>
+            <div>⋯ بنفسجي: عدم يقين أو اختلاف إسناد</div>
+            <div>– – أخضر: تبعية / نفوذ</div>
+            <div>– · برتقالي: حكم مؤقت / حملة</div>
+            <div>⋯ حافة منقطة: ترسيم غير محقق</div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-sm bg-[#8a3b24] opacity-80 shrink-0 border border-[#8a3b24]"></span>
-              <span className="font-bold">المساحة السيادية الأساسية</span>
+              <span className="font-bold">نطاق إقليمي — راجع درجة الدقة</span>
             </div>
 
             {currentSlide.extent?.secondary && (

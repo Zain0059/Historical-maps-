@@ -609,3 +609,14 @@ h1, h2, h3, h4, .font-serif {
   max-width: min(280px, 65vw);
   white-space: normal;
 }
+
+.boundary-review {
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid #a8a29e;
+  background: #fafaf9;
+  color: #292524;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.boundary-review summary { min-height: 32px; }

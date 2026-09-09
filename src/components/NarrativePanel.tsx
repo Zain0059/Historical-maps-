@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { SlideData } from '../types';
 import { Shield, BookOpen, Landmark, Calendar, MapPin, ExternalLink, Sparkles, TrendingUp, BarChart3, FileText } from 'lucide-react';
+import { BoundaryReviewPanel } from './BoundaryReviewPanel';
 import { HistoricalDataPanel } from './HistoricalDataPanel';
 import { getStatBySlideId } from '../data/eraStatistics';
 
 interface NarrativePanelProps {
+  onSelectPhase?: (id:string) => void;
   slide: SlideData;
   onSelectCapital?: () => void;
   onSelectSlideIndex?: (index: number) => void;
@@ -15,6 +17,7 @@ interface NarrativePanelProps {
 
 export const NarrativePanel: React.FC<NarrativePanelProps> = ({
   slide,
+  onSelectPhase,
   onSelectCapital,
   onSelectSlideIndex,
   activeTab: controlledTab,
@@ -77,12 +80,8 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
-            <span>لوحة البيانات (Recharts)</span>
-            <span className="text-[10px] bg-[#101713]/40 text-white px-1.5 py-0.2 rounded font-mono font-bold">
-              {currentEraStat.estimatedAreaKm2 >= 1000000
-                ? `${(currentEraStat.estimatedAreaKm2 / 1000000).toFixed(1)}M`
-                : `${Math.round(currentEraStat.estimatedAreaKm2 / 1000)}k`}
-            </span>
+            <span>البيانات</span>
+
           </button>
         </div>
 
@@ -94,7 +93,7 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
 
       {/* VIEW 1: Recharts Data Panel View */}
       {currentTab === 'statistics' ? (
-        <HistoricalDataPanel
+        slide.boundaryReview ? <div className="p-5 leading-relaxed"><h2 className="font-bold">المساحات قيد المراجعة</h2><p>أُوقف عرض أرقام المساحة والمقارنات القديمة لأنها غير مرتبطة بمرحلة وهندسة موثقتين. لا يمكن استنتاج مساحة سيادية من الرقع التوضيحية أو جمع التبعيات والحملات معها.</p><BoundaryReviewPanel slide={slide} onSelectPhase={onSelectPhase}/></div> : <HistoricalDataPanel
           currentSlideId={slide.id}
           onSelectEra={(slideIdx) => {
             if (onSelectSlideIndex) {
@@ -147,20 +146,12 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
                 </button>
               )}
 
-              <button
-                type="button"
-                id="narrative-area-shortcut-btn"
-                onClick={() => handleTabSelect('statistics')}
-                className="inline-flex items-center gap-1.5 bg-[#ffffff] hover:bg-[#faece8] border border-[#752612]/35 shadow-xs rounded px-2.5 py-1 text-xs text-[#752612] font-medium transition-colors cursor-pointer"
-                title="انقر لعرض المخطط البياني في لوحة البيانات (Recharts)"
-              >
-                <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-                <span>المساحة: <strong className="font-bold text-[#5a1a0b]">{currentEraStat.estimatedAreaKm2 >= 1000000 ? `${(currentEraStat.estimatedAreaKm2 / 1000000).toFixed(2)} مليون كم²` : `${currentEraStat.estimatedAreaKm2.toLocaleString('ar-EG')} كم²`}</strong></span>
-                <span className="text-[10px] text-[#752612] underline font-bold">مخطط البيانات ›</span>
-              </button>
+
             </div>
           </div>
 
+          <BoundaryReviewPanel slide={slide} onSelectPhase={onSelectPhase} />
+          {slide.boundaryReview?.status === 'schematic' && <p className="p-2 text-xs text-amber-900">السرد التالي من النسخة السابقة؛ لا يعد توثيقاً للحدود المرسومة.</p>}
           {/* Media figure (if present) */}
           {slide.media?.url && (
             <figure className="my-4 border border-[#cbbd95] bg-[#ffffff] p-3 rounded-lg shadow-sm flex flex-col items-center select-none overflow-hidden transition-all duration-300">

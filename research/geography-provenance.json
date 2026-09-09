@@ -1,0 +1,21 @@
+{
+  "retrieved": "2026-09-09",
+  "license": "Natural Earth — public domain",
+  "countryFile": "https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_admin_0_countries.geojson",
+  "countryBlobSha": "9d99f26dc470fcdbd08b062c813005acbdf73ccb",
+  "disputesFile": "https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_10m_admin_0_disputed_areas.geojson",
+  "disputesBlobSha": "20866d163d8e7557bb9808d286060229f79e2e42",
+  "selection": [
+    "Egypt",
+    "Cyprus",
+    "Halayib Triangle",
+    "Bir Tawil"
+  ],
+  "transform": "Original GeoJSON coordinates preserved; properties reduced to name. Lat/lon swap performed explicitly at render time. Current coastline is not evidence for ancient sovereignty.",
+  "cyprusCoastline": {
+    "repository": "nvkelso/natural-earth-vector",
+    "path": "geojson/ne_50m_land.geojson",
+    "blob_sha": "c412c52b5286ba727dcb7047ecd6080bcbeb8298",
+    "selection": "Complete land polygon inside 32–35 E, 34–36 N; replaces modern political partition; 49 vertices"
+  }
+}
