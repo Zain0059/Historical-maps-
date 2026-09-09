@@ -2,6 +2,8 @@ export type PeriodCategory = 'ancient' | 'greco_roman' | 'islamic_medieval' | 'm
 
 export type ControlType =
   | 'direct_administration'
+  | 'administrative_boundary'
+  | 'joint_administration'
   | 'dependency'
   | 'temporary_occupation'
   | 'campaign'

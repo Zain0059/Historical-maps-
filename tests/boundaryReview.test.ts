@@ -39,4 +39,27 @@ const roman=ALL_SLIDES.find(s=>s.id===9)!;
 assert.equal(getReviewedSlide(roman,'sasanian-625').extent?.controlFeatures?.[0].type,'temporary_occupation');
 assert.equal(getReviewedSlide(roman,'byzantine-635').extent?.controlFeatures?.[0].type,'direct_administration');
 for(const id of [0,21]) assert.ok(getReviewedSlide(ALL_SLIDES.find(s=>s.id===id)!).extent?.controlFeatures?.some(f=>f.name==='مثلث حلايب'));
+const republic=ALL_SLIDES.find(s=>s.id===21)!;
+assert.equal(getReviewedSlide(republic).boundaryPhase?.id,'modern-reference');
+const occupied=getReviewedSlide(republic,'egypt-1968');
+assert.equal(occupied.extent?.controlFeatures?.length,2);
+assert.ok(!occupied.extent?.controlFeatures?.some(f=>f.type==='disputed_territory'),'Do not back-project modern Halaib metadata into 1968');
+const sinai=occupied.extent!.controlFeatures!.find(f=>f.type==='temporary_occupation')!;
+const inside=(p:number[],ring:number[][])=>{
+ let yes=false;
+ for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+  const [yi,xi]=ring[i],[yj,xj]=ring[j];
+  if((yi>p[0])!==(yj>p[0])&&p[1]<(xj-xi)*(p[0]-yi)/(yj-yi)+xi)yes=!yes;
+ }
+ return yes;
+};
+assert.ok(inside([29,34],sinai.polygons![0][0]),'Interior Sinai must be in the occupation layer');
+assert.ok(!inside([30.05,31.24],sinai.polygons![0][0]),'Cairo must not be in the occupation layer');
+assert.ok(!inside([31.5,34.47],sinai.polygons![0][0]),'Do not merge Gaza into the Sinai geometry');
+const lateRoman=getReviewedSlide(roman,'roman-post-diocletian').extent!.controlFeatures!;
+assert.equal(lateRoman.length,3);
+assert.ok(lateRoman.every(f=>f.type==='administrative_boundary'&&f.geometryType==='line'&&!f.polygons),'Administrative lines must not become closed sovereign polygons');
+const colonial=getReviewedSlide(ALL_SLIDES.find(s=>s.id===20)!,'egypt-sudan-1935');
+assert.equal(colonial.extent?.controlFeatures?.filter(f=>f.type==='joint_administration').length,1);
+assert.ok(!BOUNDARY_REVIEWS[21].phases?.some(p=>p.year===1979),'Do not equate the treaty date with completed withdrawal');
 console.log('Boundary audit coverage, phase isolation, source references, coordinates, and dispute semantics passed.');
