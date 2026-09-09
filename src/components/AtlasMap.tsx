@@ -4,8 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'motion/react';
 import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
 import { MODERN_EGYPT_BORDER } from '../data/modernEgyptBorder';
-import { LOCAL_SEAS_AND_LAKES, LOCAL_RIVERS, LOCAL_GEO_LABELS } from '../data/localGeography';
-import { Layers, Eye, Compass, Maximize2, X, History, Scroll, Map as MapIcon, RotateCcw } from 'lucide-react';
+import { Layers, Eye, Compass, Maximize2, X, History, Map as MapIcon, RotateCcw } from 'lucide-react';
 
 // Fix standard Leaflet default marker icon paths if standard markers are ever referenced
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -19,49 +18,28 @@ L.Icon.Default.mergeOptions({
 export const EGYPT_CENTER: [number, number] = [26.8206, 30.8025];
 export const EGYPT_DEFAULT_ZOOM = 5;
 
-export type BaseMapStyle = 'local' | 'voyager' | 'osm' | 'natgeo' | 'positron' | 'satellite';
-export type BasemapStatus = 'loading' | 'ready' | 'fallback_local' | 'error';
+export type BaseMapStyle = 'voyager' | 'natgeo' | 'positron' | 'satellite';
 
 export interface BaseMapConfig {
   id: BaseMapStyle;
   name: string;
   shortLabel: string;
-  url?: string;
-  options?: L.TileLayerOptions;
+  url: string;
+  options: L.TileLayerOptions;
   icon: string;
-  description?: string;
 }
 
 export const BASE_MAP_CONFIGS: Record<BaseMapStyle, BaseMapConfig> = {
-  local: {
-    id: 'local',
-    name: 'خريطة جغرافية مبسطة (محلية مدمجة)',
-    shortLabel: 'جغرافية محلية',
-    icon: '🗺️',
-    description: 'طبقات متجهة مدمجة محلياً بالكامل (النيل، البحار، التضاريس) - تعمل بدون اتصال بالإنترنت 100%'
-  },
   voyager: {
     id: 'voyager',
-    name: 'الخريطة الملونة المفصلة (CARTO Voyager)',
-    shortLabel: 'ملونة عالمية',
-    url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-    options: {
-      subdomains: 'abcd',
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    },
-    icon: '🎨'
-  },
-  osm: {
-    id: 'osm',
-    name: 'خريطة الشارع المفتوحة (OpenStreetMap)',
-    shortLabel: 'OpenStreetMap',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    name: 'الخريطة الجغرافية الملونة (Esri World Map)',
+    shortLabel: 'الجغرافية',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     options: {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: 'Tiles &copy; Esri &mdash; National Geographic, DeLorme, NAVTEQ'
     },
-    icon: '🌐'
+    icon: '🗺️'
   },
   natgeo: {
     id: 'natgeo',
@@ -76,13 +54,13 @@ export const BASE_MAP_CONFIGS: Record<BaseMapStyle, BaseMapConfig> = {
   },
   positron: {
     id: 'positron',
-    name: 'خريطة كلاسيكية هادئة (CARTO Positron)',
+    name: 'خريطة كلاسيكية هادئة (Light Gray Canvas)',
     shortLabel: 'كلاسيكية',
-    url: 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     options: {
-      subdomains: 'abcd',
+      maxNativeZoom: 16,
       maxZoom: 19,
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+      attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, DeLorme'
     },
     icon: '📜'
   },
@@ -100,209 +78,37 @@ export const BASE_MAP_CONFIGS: Record<BaseMapStyle, BaseMapConfig> = {
 };
 
 /**
- * Creates a standard Leaflet TileLayer with monitored lifecycle callbacks.
- * Does NOT force crossOrigin for raster tiles to ensure compatibility across iframe and preview sandboxes.
+ * Creates an Esri tile layer with one alternate-host retry per failed tile.
  */
-export function createSafeTileLayer(
-  config: BaseMapConfig,
-  callbacks?: {
-    onTileLoad?: () => void;
-    onTileError?: () => void;
-  }
-): L.TileLayer {
-  if (!config.url) {
-    throw new Error(`Tile URL missing for basemap style: ${config.id}`);
-  }
-
+export function createSafeTileLayer(config: BaseMapConfig): L.TileLayer {
   const layer = L.tileLayer(config.url, {
-    ...(config.options || {}),
-    keepBuffer: 4,
-    updateWhenIdle: false
+    ...config.options
   });
 
-  if (callbacks?.onTileLoad) {
-    layer.on('tileload', callbacks.onTileLoad);
-  }
-  if (callbacks?.onTileError) {
-    layer.on('tileerror', callbacks.onTileError);
-  }
+  layer.on('tileerror', (e: any) => {
+    const tile = e.tile;
+    if (!tile || tile._fallbackHandled) return;
+    tile._fallbackHandled = true;
+
+    const z = e.coords?.z;
+    const x = e.coords?.x;
+    const y = e.coords?.y;
+
+    if (z === undefined || x === undefined || y === undefined) return;
+
+    // Retry once on the alternate Esri host.
+    if (config.id === 'satellite') {
+      tile.src = `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+    } else if (config.id === 'natgeo') {
+      tile.src = `https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`;
+    } else if (config.id === 'positron') {
+      tile.src = `https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${z}/${y}/${x}`;
+    } else {
+      tile.src = `https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`;
+    }
+  });
 
   return layer;
-}
-
-/**
- * Constructs the bundled local geographic vector basemap layer group.
- * Renders verified coastlines, seas, lakes, rivers (the Nile, Delta branches),
- * depressions, oases, and verified Arabic geographic labels.
- */
-export function createLocalGeographyLayerGroup(map: L.Map): L.LayerGroup {
-  const group = L.layerGroup();
-
-  // 1. Water bodies, depressions, and land features
-  LOCAL_SEAS_AND_LAKES.forEach((feat) => {
-    if (feat.type === 'sea') {
-      const seaPoly = L.polygon(feat.coords, {
-        pane: 'localGeoPane',
-        color: '#6597b2',
-        weight: 1.2,
-        fillColor: '#b8d6ec',
-        fillOpacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-      });
-      group.addLayer(seaPoly);
-    } else if (feat.type === 'lake') {
-      const lakePoly = L.polygon(feat.coords, {
-        pane: 'localGeoPane',
-        color: '#4e8aa9',
-        weight: 1,
-        fillColor: '#a8d2eb',
-        fillOpacity: 0.95,
-        interactive: false
-      });
-      group.addLayer(lakePoly);
-    } else if (feat.type === 'depression') {
-      const depPoly = L.polygon(feat.coords, {
-        pane: 'localGeoPane',
-        color: '#9c8665',
-        weight: 1.2,
-        dashArray: '4, 4',
-        fillColor: '#ece3d0',
-        fillOpacity: 0.8,
-        interactive: false
-      });
-      group.addLayer(depPoly);
-    } else if (feat.type === 'oasis') {
-      const oasisPoly = L.polygon(feat.coords, {
-        pane: 'localGeoPane',
-        color: '#6f8b50',
-        weight: 1.2,
-        fillColor: '#d1e1c1',
-        fillOpacity: 0.85,
-        interactive: false
-      });
-      group.addLayer(oasisPoly);
-    } else if (feat.type === 'land') {
-      const islandPoly = L.polygon(feat.coords, {
-        pane: 'localGeoPane',
-        color: '#b69e7c',
-        weight: 1.2,
-        fillColor: '#f5f0e3',
-        fillOpacity: 1,
-        interactive: false
-      });
-      group.addLayer(islandPoly);
-    }
-  });
-
-  // 2. River networks (Nile main stem, Delta branches, tributaries)
-  LOCAL_RIVERS.forEach((river) => {
-    const isMainNile = river.id === 'nile_egypt_main' || river.id === 'nile_sudan_main';
-    const isCanal = river.type === 'canal';
-    const riverLine = L.polyline(river.coords, {
-      pane: 'localGeoPane',
-      color: isMainNile ? '#175f85' : '#237096',
-      weight: isMainNile ? 3.5 : isCanal ? 1.8 : 2.5,
-      dashArray: isCanal ? '4, 4' : undefined,
-      opacity: 0.95,
-      lineCap: 'round',
-      lineJoin: 'round',
-      interactive: false
-    });
-    group.addLayer(riverLine);
-  });
-
-  // 3. Geographic Labels
-  LOCAL_GEO_LABELS.forEach((lbl) => {
-    let textStyle = 'select-none pointer-events-none whitespace-nowrap leading-none';
-    if (lbl.category === 'sea') {
-      textStyle += ' font-serif italic text-[#144762] font-bold text-[12px] opacity-90 drop-shadow-[0_1px_1px_rgba(255,255,255,0.85)]';
-    } else if (lbl.category === 'river') {
-      textStyle += ' font-sans font-bold text-[#145372] text-[10.5px] opacity-95 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]';
-    } else if (lbl.category === 'region') {
-      textStyle += ' font-sans font-bold text-[#55432f] text-[11px] tracking-wider opacity-85';
-    } else if (lbl.category === 'mountain') {
-      textStyle += ' font-sans text-[#633e21] text-[10px] opacity-90';
-    } else if (lbl.category === 'oasis') {
-      textStyle += ' font-sans font-semibold text-[#375429] text-[10px] opacity-90';
-    }
-
-    const labelMarker = L.marker([lbl.lat, lbl.lon], {
-      pane: 'localGeoPane',
-      interactive: false,
-      icon: L.divIcon({
-        className: 'local-geo-label',
-        html: `<div dir="rtl" class="${textStyle}">${lbl.nameAr}</div>`,
-        iconSize: [120, 16],
-        iconAnchor: [60, 8]
-      })
-    });
-    group.addLayer(labelMarker);
-  });
-
-  return group;
-}
-
-export interface EraTextureInfo {
-  category: 'ancient' | 'greco_roman' | 'islamic_medieval' | 'modern';
-  name: string;
-  badge: string;
-  material: string;
-  eraName: string;
-  className: string;
-}
-
-/**
- * Returns period-specific document texture and tactile grain metadata
- * corresponding to authentic historical cartographic media used in Egypt.
- */
-export function getEraTextureInfo(slide: SlideData): EraTextureInfo {
-  const period = slide.periodCategory || (
-    slide.id <= 7 ? 'ancient' :
-    slide.id <= 9 ? 'greco_roman' :
-    slide.id <= 16 ? 'islamic_medieval' : 'modern'
-  );
-
-  switch (period) {
-    case 'ancient':
-      return {
-        category: 'ancient',
-        name: 'بردي فرعوني أصيل',
-        badge: 'ألياف بردي ملكي',
-        material: 'ألياف نبات البردي ونقوش حجرية بارزة',
-        eraName: 'عصور الفراعنة (3100 - 332 ق.م)',
-        className: 'era-texture-ancient'
-      };
-    case 'greco_roman':
-      return {
-        category: 'greco_roman',
-        name: 'رقّ جلدي سكندري',
-        badge: 'رقّ ومربعات بطليموس',
-        material: 'رقّ كلاسيكي وشبكة خطوط بطليموس الفلكية',
-        eraName: 'العصر البطلمي والروماني (332 ق.م - 641 م)',
-        className: 'era-texture-greco_roman'
-      };
-    case 'islamic_medieval':
-      return {
-        category: 'islamic_medieval',
-        name: 'ورق قطني مشرقي مدكوك',
-        badge: 'ورق إسلامي موشى',
-        material: 'قالب سمرقندي مدكوك وموشى بصبغة الزعفران',
-        eraName: 'العصور الإسلامية والوسيطة (641 - 1798 م)',
-        className: 'era-texture-islamic_medieval'
-      };
-    case 'modern':
-    default:
-      return {
-        category: 'modern',
-        name: 'طباعة حجرية مساحية',
-        badge: 'أطلس المساحة 1928',
-        material: 'تنقيط طباعة حجرية وألواح نحاسية محفورة',
-        eraName: 'عصر النهضة الحديثة والمعاصرة',
-        className: 'era-texture-modern'
-      };
-  }
 }
 
 /**
@@ -387,27 +193,12 @@ function safeFlyToBounds(
       return;
     }
 
-    try {
-      map.invalidateSize();
-    } catch {
-      // ignore
-    }
-    
-    let size;
-    try {
-      size = map.getSize();
-    } catch {
-      // map might be removed
-    }
+    map.invalidateSize();
+    const size = map.getSize();
 
     // If container size is 0 or too small for padding, getBoundsZoom produces negative size -> Math.log(neg) -> NaN!
     if (!size || size.x <= 100 || size.y <= 100) {
-      let c;
-      try {
-        c = bounds.getCenter();
-      } catch {
-        // bounds.getCenter() might throw if bounds is invalid in a weird way
-      }
+      const c = bounds.getCenter();
       if (c && !isNaN(c.lat) && !isNaN(c.lng) && isFinite(c.lat) && isFinite(c.lng)) {
         map.setView([c.lat, c.lng], 5);
       } else {
@@ -475,24 +266,13 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   const frameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const temporalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const textureShiftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showEraToast, setShowEraToast] = useState<boolean>(false);
   const [isTemporalFading, setIsTemporalFading] = useState<boolean>(false);
   const [temporalDirection, setTemporalDirection] = useState<'forward' | 'backward'>('forward');
-  const [showTexture, setShowTexture] = useState<boolean>(false); // False by default so the original map is 100% visible and unclouded
-  const [isTextureShifting, setIsTextureShifting] = useState<boolean>(false);
   const [baseMapStyle, setBaseMapStyle] = useState<BaseMapStyle>(() => {
     try {
       const saved = localStorage.getItem('atlas_basemap_style');
-      if (
-        saved &&
-        (saved === 'local' ||
-          saved === 'voyager' ||
-          saved === 'osm' ||
-          saved === 'natgeo' ||
-          saved === 'positron' ||
-          saved === 'satellite')
-      ) {
+      if (saved && (saved === 'voyager' || saved === 'natgeo' || saved === 'positron' || saved === 'satellite')) {
         return saved as BaseMapStyle;
       }
     } catch {
@@ -502,7 +282,6 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
   });
 
   const handleBaseMapChange = (newStyle: BaseMapStyle) => {
-    candidateIndexRef.current = 0;
     setBaseMapStyle(newStyle);
     try {
       localStorage.setItem('atlas_basemap_style', newStyle);
@@ -510,24 +289,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       // ignore
     }
   };
-
-  // Readiness separation: mapInitialized (DOM/Canvas ready) vs basemapStatus (tiles loaded / fallback)
-  const [isMapInitialized, setIsMapInitialized] = useState<boolean>(false);
-  const [basemapStatus, setBasemapStatus] = useState<BasemapStatus>('loading');
-  const [retryTrigger, setRetryTrigger] = useState<number>(0);
-  const candidateIndexRef = useRef<number>(0);
-  const basemapLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
-  const localGeoLayerGroupRef = useRef<L.LayerGroup | null>(null);
-  const localGeoPaneRef = useRef<HTMLElement | null>(null);
+  const currentBaseStyleRef = useRef<BaseMapStyle | null>(null);
 
-  const handleManualRetry = () => {
-    candidateIndexRef.current = 0;
-    setRetryTrigger((prev) => prev + 1);
-  };
+  const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
 
-  // Trigger smooth era toast badge, Temporal Fade & tactile texture shifting on era changes
+  // Trigger smooth era toast badge, Temporal Fade on era changes
   useEffect(() => {
     if (!isInitialRenderRef.current) {
       const prevId = prevEraIdRef.current;
@@ -542,13 +309,6 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         setIsTemporalFading(false);
       }, 850);
 
-      // Tactile grain pulse to simulate unfurling a new historical manuscript
-      setIsTextureShifting(true);
-      if (textureShiftTimerRef.current) clearTimeout(textureShiftTimerRef.current);
-      textureShiftTimerRef.current = setTimeout(() => {
-        setIsTextureShifting(false);
-      }, 750);
-
       setShowEraToast(true);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => {
@@ -558,12 +318,11 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       if (temporalTimerRef.current) clearTimeout(temporalTimerRef.current);
-      if (textureShiftTimerRef.current) clearTimeout(textureShiftTimerRef.current);
     };
   }, [currentSlide.id]);
 
   // Robust Map Mount Effect: Initializes Leaflet cleanly and handles React StrictMode mount/unmount/remount
-  // Note: Loads ONLY in the first tab (narrative) and cleans up in other tabs
+  // Note: Loads ONLY in the first tab (narrative) and never in other tabs as requested
   useEffect(() => {
     if (activeTab && activeTab !== 'narrative') {
       if (mapInstanceRef.current) {
@@ -574,7 +333,6 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         }
         mapInstanceRef.current = null;
       }
-      setIsMapInitialized(false);
       return;
     }
 
@@ -616,12 +374,6 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       // Zoom control on bottom left
       L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-      // Dedicated pane for bundled local geographic basemap (zIndex 250)
-      const localGeoPane = map.createPane('localGeoPane');
-      localGeoPane.style.zIndex = '250';
-      localGeoPane.style.transition = 'opacity 350ms ease';
-      localGeoPaneRef.current = localGeoPane;
-
       // Dedicated panes for historical era layers with CSS transition support
       const historicalOverlayPane = map.createPane('historicalOverlayPane');
       historicalOverlayPane.style.zIndex = '450';
@@ -637,14 +389,15 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       outpostsLayerRef.current = L.layerGroup().addTo(map);
       landmarksLayerRef.current = L.layerGroup().addTo(map);
 
-      // Always mount the bundled local geographic reference basemap immediately
-      // This ensures 100% visible coastlines, Nile, and seas with zero network delay
-      const localGroup = createLocalGeographyLayerGroup(map);
-      localGroup.addTo(map);
-      localGeoLayerGroupRef.current = localGroup;
+      // Initial Base Tile Layer
+      const initialConfig = BASE_MAP_CONFIGS[baseMapStyle] || BASE_MAP_CONFIGS['voyager'];
+      const baseLayer = createSafeTileLayer(initialConfig);
+      baseLayer.addTo(map);
+      baseTileLayerRef.current = baseLayer;
+      currentBaseStyleRef.current = baseMapStyle;
 
       mapInstanceRef.current = map;
-      setIsMapInitialized(true);
+      setIsMapLoaded(true);
 
       // ResizeObserver ensures Leaflet updates viewport when container layout changes
       if (typeof ResizeObserver !== 'undefined') {
@@ -685,7 +438,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         }
       }
       mapInstanceRef.current = null;
-      setIsMapInitialized(false);
+      setIsMapLoaded(false);
     }
 
     // Effect cleanup: Guaranteed to be returned outside of try/catch to ensure proper disposal on unmount/re-render
@@ -709,8 +462,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       }
 
       baseTileLayerRef.current = null;
-      localGeoLayerGroupRef.current = null;
-      localGeoPaneRef.current = null;
+      currentBaseStyleRef.current = null;
       coreLayerRef.current = null;
       secondaryLayerRef.current = null;
       outpostsLayerRef.current = null;
@@ -718,175 +470,46 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       capitalMarkerRef.current = null;
       modernBorderLayerRef.current = null;
 
-      setIsMapInitialized(false);
+      setIsMapLoaded(false);
     };
-  }, [activeTab]);
+  }, []);
 
-  // Centralized, monitored basemap management effect with bounded layer-level fallback
+  // Dynamically update base tile layer when user switches style
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !isMapInitialized) return;
+    if (!map || !isMapLoaded) return;
 
-    // Clear any previous timeout
-    if (basemapLoadTimeoutRef.current) {
-      clearTimeout(basemapLoadTimeoutRef.current);
-      basemapLoadTimeoutRef.current = null;
-    }
-
-    // Safely remove any existing raster tile layer
-    const cleanupOldTileLayer = () => {
-      if (baseTileLayerRef.current) {
-        try {
-          baseTileLayerRef.current.off();
-          map.removeLayer(baseTileLayerRef.current);
-        } catch (err) {
-          console.warn('Error removing previous tile layer:', err);
-        }
-        baseTileLayerRef.current = null;
-      }
-    };
-
-    // If local geographic basemap is explicitly chosen:
-    if (baseMapStyle === 'local') {
-      cleanupOldTileLayer();
-      if (localGeoPaneRef.current) {
-        localGeoPaneRef.current.style.opacity = '1';
-      }
-      setBasemapStatus('ready');
+    if (currentBaseStyleRef.current === baseMapStyle && baseTileLayerRef.current) {
       return;
     }
 
-    // Multi-provider fallback chain of independent providers
-    const candidateChain: BaseMapStyle[] =
-      baseMapStyle === 'voyager'
-        ? ['voyager', 'osm', 'natgeo']
-        : baseMapStyle === 'osm'
-        ? ['osm', 'voyager', 'natgeo']
-        : baseMapStyle === 'natgeo'
-        ? ['natgeo', 'osm', 'voyager']
-        : baseMapStyle === 'positron'
-        ? ['positron', 'osm']
-        : [baseMapStyle]; // satellite
-
-    let currentIndex = candidateIndexRef.current;
-    if (currentIndex >= candidateChain.length) {
-      currentIndex = 0;
-      candidateIndexRef.current = 0;
+    if (baseTileLayerRef.current) {
+      try {
+        map.removeLayer(baseTileLayerRef.current);
+      } catch (err) {
+        console.warn('Error removing old base tile layer:', err);
+      }
+      baseTileLayerRef.current = null;
     }
 
-    const currentCandidateKey = candidateChain[currentIndex];
-    const currentCandidateConfig = BASE_MAP_CONFIGS[currentCandidateKey];
-
-    if (!currentCandidateConfig?.url) {
-      cleanupOldTileLayer();
-      if (localGeoPaneRef.current) {
-        localGeoPaneRef.current.style.opacity = '1';
-      }
-      setBasemapStatus('fallback_local');
-      return;
-    }
-
-    cleanupOldTileLayer();
-    setBasemapStatus('loading');
-
-    // While remote tiles are being fetched, keep the local vectors visible
-    // so the map NEVER displays a solid empty void
-    if (localGeoPaneRef.current) {
-      localGeoPaneRef.current.style.opacity = '1';
-    }
-
-    let loadedCount = 0;
-    let errorCount = 0;
-    let hasResolved = false;
-
-    const activateLocalFallback = () => {
-      if (hasResolved) return;
-      hasResolved = true;
-      if (basemapLoadTimeoutRef.current) {
-        clearTimeout(basemapLoadTimeoutRef.current);
-        basemapLoadTimeoutRef.current = null;
-      }
-
-      cleanupOldTileLayer();
-      if (localGeoPaneRef.current) {
-        localGeoPaneRef.current.style.opacity = '1';
-      }
-      setBasemapStatus('fallback_local');
-    };
-
-    const tryNextCandidateOrFallback = () => {
-      if (hasResolved) return;
-      if (currentIndex < candidateChain.length - 1) {
-        candidateIndexRef.current = currentIndex + 1;
-        setRetryTrigger((prev) => prev + 1);
-      } else {
-        activateLocalFallback();
-      }
-    };
-
-    const newTileLayer = createSafeTileLayer(currentCandidateConfig, {
-      onTileLoad: () => {
-        if (hasResolved) return;
-        loadedCount++;
-        if (loadedCount >= 1) {
-          hasResolved = true;
-          if (basemapLoadTimeoutRef.current) {
-            clearTimeout(basemapLoadTimeoutRef.current);
-            basemapLoadTimeoutRef.current = null;
-          }
-          setBasemapStatus('ready');
-          // Remote tiles are rendering, smoothly fade local layer so remote details shine
-          if (localGeoPaneRef.current) {
-            localGeoPaneRef.current.style.opacity = '0';
-          }
-        }
-      },
-      onTileError: () => {
-        if (hasResolved) return;
-        errorCount++;
-        // If 4 tiles fail with 0 successful loads, trigger candidate switch or fallback
-        if (errorCount >= 4 && loadedCount === 0) {
-          tryNextCandidateOrFallback();
-        }
-      }
-    });
-
-    try {
-      newTileLayer.addTo(map);
-      baseTileLayerRef.current = newTileLayer;
-    } catch (err) {
-      console.warn('Error adding tile layer to map:', err);
-      tryNextCandidateOrFallback();
-      return;
-    }
-
-    // Bounded timeout: If after 6 seconds no tiles load, switch candidate or fall back to local
-    basemapLoadTimeoutRef.current = setTimeout(() => {
-      if (!hasResolved && loadedCount === 0) {
-        tryNextCandidateOrFallback();
-      }
-    }, 6000);
-
-    return () => {
-      if (basemapLoadTimeoutRef.current) {
-        clearTimeout(basemapLoadTimeoutRef.current);
-        basemapLoadTimeoutRef.current = null;
-      }
-      cleanupOldTileLayer();
-    };
-  }, [baseMapStyle, isMapInitialized, retryTrigger]);
+    const config = BASE_MAP_CONFIGS[baseMapStyle] || BASE_MAP_CONFIGS['voyager'];
+    const newTileLayer = createSafeTileLayer(config);
+    newTileLayer.addTo(map);
+    baseTileLayerRef.current = newTileLayer;
+    currentBaseStyleRef.current = baseMapStyle;
+  }, [baseMapStyle, isMapLoaded]);
 
   // Adjust viewport size when active tab changes between narrative and statistics
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !isMapInitialized) return;
+    if (!map || !isMapLoaded) return;
     const timer = setTimeout(() => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.invalidateSize();
       }
     }, 80);
     return () => clearTimeout(timer);
-  }, [activeTab, isMapInitialized]);
+  }, [activeTab, isMapLoaded]);
 
   // Update map features whenever currentSlide changes with smooth CSS transition fade-in/out
   useEffect(() => {
@@ -1149,12 +772,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
       }
     };
 
-  }, [currentSlide, isMapInitialized]);
+  }, [currentSlide, isMapLoaded]);
 
   // Dedicated effect for frontier landmarks: toggling updates landmarks layer directly without resetting camera view or re-rendering entire era
   useEffect(() => {
     const layer = landmarksLayerRef.current;
-    if (!layer || !isMapInitialized) return;
+    if (!layer || !isMapLoaded) return;
 
     layer.clearLayers();
 
@@ -1195,12 +818,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         layer.addLayer(marker);
       });
     }
-  }, [showFrontierLandmarks, currentSlide, isMapInitialized]);
+  }, [showFrontierLandmarks, currentSlide, isMapLoaded]);
 
   // Handle Modern Border Overlay toggle
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !isMapInitialized) return;
+    if (!map || !isMapLoaded) return;
 
     if (showModernBorder) {
       if (!modernBorderLayerRef.current) {
@@ -1229,7 +852,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         modernBorderLayerRef.current = null;
       }
     }
-  }, [showModernBorder, isMapInitialized]);
+  }, [showModernBorder, isMapLoaded]);
 
   // Re-center handler
   const handleRecenter = () => {
@@ -1270,31 +893,24 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
     safeFlyToBounds(map, boundsPoints, fallback);
   };
 
-  // Immediate reset to original crisp base map with no texture
+  // Immediate reset to original geographic base map
   const handleResetOriginalMap = () => {
     handleBaseMapChange('voyager');
-    setShowTexture(false);
     handleRecenter();
   };
 
-  const textureInfo = getEraTextureInfo(currentSlide);
-
   return (
     <div className="relative w-full h-full min-h-[260px] flex-1 overflow-hidden">
-      {/* Map Container - stable DOM element preserved across era transitions */}
+      {/* Keep the Leaflet container and its React className stable across era changes */}
       <div
         ref={mapContainerRef}
         id="historical-leaflet-map"
         dir="ltr"
-        className={`absolute inset-0 w-full h-full z-0 historical-map-canvas ${textureInfo.className} ${
-          !showTexture ? 'era-texture-disabled' : ''
-        } ${isTemporalFading ? 'is-temporal-shifting' : ''} ${
-          isTextureShifting ? 'is-texture-shifting' : ''
-        }`}
+        className="absolute inset-0 w-full h-full z-0 historical-map-canvas"
       />
 
-      {/* State-based loading check: Loading indicator while Leaflet map instance initializes */}
-      {!isMapInitialized && (
+      {/* State-based loading check: Loading indicator while container and Leaflet map instance initialize */}
+      {!isMapLoaded && (
         <div
           id="map-loading-indicator"
           className="absolute inset-0 z-[1050] flex flex-col items-center justify-center bg-[#f5f0e3] transition-opacity duration-300 pointer-events-none select-none"
@@ -1303,79 +919,6 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           <span className="text-xs font-serif font-bold text-[#752612] tracking-wide">
             جاري تهيئة الخريطة التاريخية...
           </span>
-        </div>
-      )}
-
-      {/* Basemap Status Feedback Chip */}
-      {isMapInitialized && basemapStatus === 'fallback_local' && (
-        <div
-          id="basemap-fallback-banner"
-          dir="rtl"
-          className="absolute bottom-4 right-4 z-[400] bg-[#fbf8f0]/95 backdrop-blur-md border border-[#cbbd95] shadow-lg rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs font-serif text-[#752612] select-none"
-        >
-          <span className="w-2 h-2 rounded-full bg-amber-600 shrink-0" />
-          <span>تُعرض خريطة السواحل والنيل المحلية المدمجة (وضع محلي آمن)</span>
-          <button
-            type="button"
-            onClick={handleManualRetry}
-            className="ml-1 px-2 py-0.5 bg-[#8a3b24] text-white rounded text-[11px] font-sans hover:bg-[#6e2e1c] transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>إعادة المحاولة</span>
-          </button>
-        </div>
-      )}
-
-      {/* Remote Tile Loading Indicator */}
-      {isMapInitialized && basemapStatus === 'loading' && baseMapStyle !== 'local' && (
-        <div
-          id="basemap-tile-loading"
-          dir="rtl"
-          className="absolute bottom-4 right-4 z-[400] bg-[#fbf8f0]/90 backdrop-blur-md border border-[#cbbd95]/70 shadow-md rounded-lg px-2.5 py-1 flex items-center gap-2 text-[11px] font-serif text-[#752612] select-none"
-        >
-          <div className="w-3 h-3 border-2 border-[#8a3b24] border-t-transparent rounded-full animate-spin shrink-0" />
-          <span>جاري جلب تفاصيل البلاطات العالمية...</span>
-        </div>
-      )}
-
-      {/* Historical Document Texture & Tactile Paper Grain Overlays */}
-      {showTexture && (
-        <div
-          className={`historical-texture-overlay-master pointer-events-none ${
-            isTextureShifting ? 'is-texture-shifting' : ''
-          }`}
-          aria-hidden="true"
-        >
-          {/* 1. Ancient Egyptian Papyrus (بردي فرعوني أصيل) */}
-          <div
-            className={`historical-texture-sublayer texture-papyrus ${
-              textureInfo.category === 'ancient' ? 'is-active' : ''
-            }`}
-          />
-
-          {/* 2. Alexandrian Vellum & Ptolemaic Graticule (رقّ سكندري ببطليموس) */}
-          <div
-            className={`historical-texture-sublayer texture-vellum ${
-              textureInfo.category === 'greco_roman' ? 'is-active' : ''
-            }`}
-          />
-
-          {/* 3. Islamic & Medieval Laid Cotton Paper (ورق قطني مشرقي مدكوك) */}
-          <div
-            className={`historical-texture-sublayer texture-laid-paper ${
-              textureInfo.category === 'islamic_medieval' ? 'is-active' : ''
-            }`}
-          />
-
-          {/* 4. Modern Cadastral Lithograph Plate (طباعة حجرية مساحية ملكية) */}
-          <div
-            className={`historical-texture-sublayer texture-lithograph ${
-              textureInfo.category === 'modern' ? 'is-active' : ''
-            }`}
-          />
-
-          {/* Tactile paper grain noise */}
-          <div className="document-tactile-grain" />
         </div>
       )}
 
@@ -1400,9 +943,6 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         >
           {/* Central Rotating Astrolabe / Chronograph Rings */}
           <div className="temporal-chronograph-ring" />
-
-          {/* Antique Parchment Grain Texture */}
-          <div className="temporal-parchment-grain" />
 
           {/* Centered Temporal Passage Pill */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1509,7 +1049,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
                 <MapIcon className="w-3.5 h-3.5 text-[#8a3b24]" />
                 <span>نوع الخريطة</span>
               </span>
-              {(baseMapStyle !== 'voyager' || showTexture) && (
+              {baseMapStyle !== 'voyager' && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1550,41 +1090,12 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
             </div>
           </div>
 
-          {/* القسم 2: طبقات العرض والنسيج التاريخي */}
+          {/* القسم 2: طبقات العرض */}
           <div className="mb-2.5 pb-2 border-b border-[#cbbd95]/70 space-y-1.5">
             <div className="text-[11px] font-bold text-[#752612] flex items-center gap-1">
               <Layers className="w-3.5 h-3.5 text-[#8a3b24]" />
               <span>طبقات العرض التفاعلية</span>
             </div>
-
-            {/* Toggle Historical Document Texture */}
-            <button
-              id="toggle-texture-btn"
-              onPointerDown={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowTexture((prev) => !prev);
-              }}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
-                showTexture
-                  ? 'bg-[#8a3b24]/10 border-[#8a3b24]/35 text-[#752612]'
-                  : 'bg-transparent border-[#cbbd95] text-[#2a2216] hover:bg-[#eae2ce]'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <Scroll className="w-3 h-3 text-[#8a3b24]" />
-                <span>نسيج الوثيقة ({textureInfo.badge})</span>
-              </span>
-              <span
-                className={`text-[10px] px-1 py-0.5 rounded font-bold ${
-                  showTexture ? 'bg-[#8a3b24] text-white' : 'bg-[#d8ccb0] text-[#17120a]'
-                }`}
-              >
-                {showTexture ? 'مفعّل' : 'معطّل'}
-              </span>
-            </button>
 
             {/* Toggle Modern Egypt Border */}
             <button
