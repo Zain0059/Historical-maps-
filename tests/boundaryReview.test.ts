@@ -62,4 +62,15 @@ assert.ok(lateRoman.every(f=>f.type==='administrative_boundary'&&f.geometryType=
 const colonial=getReviewedSlide(ALL_SLIDES.find(s=>s.id===20)!,'egypt-sudan-1935');
 assert.equal(colonial.extent?.controlFeatures?.filter(f=>f.type==='joint_administration').length,1);
 assert.ok(!BOUNDARY_REVIEWS[21].phases?.some(p=>p.year===1979),'Do not equate the treaty date with completed withdrawal');
+const newKingdom=ALL_SLIDES.find(s=>s.id===5)!;
+const megiddo=getReviewedSlide(newKingdom,'new-kingdom-megiddo');
+const ramesside=getReviewedSlide(newKingdom,'new-kingdom-ramesside');
+assert.ok(megiddo.extent!.controlFeatures!.some(f=>f.type==='campaign'&&f.geometryType==='point'));
+assert.ok(!ramesside.extent!.controlFeatures!.some(f=>f.type==='campaign'),'Do not carry a 1457 BCE campaign into the Ramesside snapshot');
+for (const result of [megiddo,ramesside]) {
+ assert.equal(result.extent!.controlFeatures!.filter(f=>f.geometryType!=='point').length,1,'Do not connect archaeological evidence into an invented empire polygon');
+ assert.equal(result.extent?.secondary,undefined);
+}
+const barkalPoint=ramesside.extent!.controlFeatures!.find(f=>f.geometryType==='point')!.coords![0];
+assert.ok(barkalPoint[0]>18.53&&barkalPoint[0]<18.54&&barkalPoint[1]>31.82&&barkalPoint[1]<31.84,'Keep UNESCO site coordinates in latitude/longitude order');
 console.log('Boundary audit coverage, phase isolation, source references, coordinates, and dispute semantics passed.');
