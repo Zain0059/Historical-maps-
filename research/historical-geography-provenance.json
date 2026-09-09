@@ -1,0 +1,43 @@
+{
+  "retrieved": "2026-09-09",
+  "crs": "EPSG:4326 (GeoJSON longitude, latitude)",
+  "awmc": {
+    "repository": "AWMC/geodata",
+    "license": "ODbL-1.0",
+    "sources": [
+      {
+        "path": "Cultural-Data/political_shading/roman_empire_ce_200_provinces/roman_empire_ce_200_provinces.geojson",
+        "blobSha": "c5c7762ef3f1e5cf1c6f030c95fe5b05bde8ef9b"
+      },
+      {
+        "path": "Cultural-Data/political_shading/roman_empire_provinces post_diocletian/roman_empire_provinces post_diocletian.geojson",
+        "blobSha": "b11655c21eebdb2596c9102f093713404dd50af6"
+      }
+    ],
+    "selection": "200 CE: OBJECTID 195. Post-Diocletian: the three complete interior Egyptian lines with first coordinates (29.330111696668837,30.89196311355397), (29.163549426260715,28.215069481994874), (29.22542580307163,29.113393941641334). No closing or interpolation."
+  },
+  "cshapes": {
+    "original": "https://icr.ethz.ch/data/cshapes/",
+    "derivativeRepository": "harahettarou/fullpuri",
+    "license": "CC-BY-NC-SA-4.0",
+    "simplificationDegrees": 0.025,
+    "sources": [
+      {
+        "path": "assets/historical-map/cshapes/cshapes-1886-1913.json",
+        "blobSha": "fc2413aa39229e98abc0b7f53c9e2b94b5fd2586"
+      },
+      {
+        "path": "assets/historical-map/cshapes/cshapes-1914-1945.json",
+        "blobSha": "c819617d162b6d6a901b739c87a46c752b112549"
+      },
+      {
+        "path": "assets/historical-map/cshapes/cshapes-1946-1990.json",
+        "blobSha": "4d289421bc101eabd1fbcd646ac0cfa5d2e85e19"
+      }
+    ],
+    "selection": "g=651,s=19251206/19670610; g=625,s=19340720. Preserve source coordinates; omit source area, colors and label anchors.",
+    "sinai": "Join the longest differing pre/post-1967 coastal and canal paths with exactly matching endpoints (32.5633,29.9568) and (32.192,31.1249). Exclude the independent small Lake Manzala geometry change. Selected year 1968 only.",
+    "rejectedInterval": "Do not display the source's 19790526 full-Egypt geometry as actual completed withdrawal. Treaty Annex I specifies phased withdrawal.",
+    "rejectedWesternExtent": "The pre-1925 record extends far west across the Sahara. No sufficiently specific independent validation of this polygon was established, so it is excluded from the app rather than presented as verified Egyptian control."
+  }
+}

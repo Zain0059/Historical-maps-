@@ -909,6 +909,9 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
         {currentSlide.boundaryPhase?.label ?? (currentSlide.boundaryReview.status==='schematic'?'ترسيم سابق غير محقق':'مرجع معاصر معمّم')}
         <div>▧ نزاع · ⋯ عدم يقين</div>
       </div>}
+      {currentSlide.boundaryPhase?.sourceIds.some(id=>id==='cshapes'||id.startsWith('awmc')) && <div className="absolute bottom-1 left-1 z-[490] max-w-[45%] bg-white/95 px-1 text-[9px] text-stone-900 leading-tight" dir="ltr">
+        {currentSlide.boundaryPhase.sourceIds.includes('cshapes')?<><a href="https://icr.ethz.ch/data/cshapes/" target="_blank" rel="noopener noreferrer">CShapes / Schvitz et al.</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a></>:<><a href="https://awmc.unc.edu/gis-data/" target="_blank" rel="noopener noreferrer">AWMC</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">ODbL 1.0</a></>}
+      </div>}
       {/* State-based loading check: Loading indicator while container and Leaflet map instance initialize */}
       {!isMapLoaded && (
         <div
@@ -1155,6 +1158,8 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
             <div>– – أخضر: تبعية / نفوذ</div>
             <div>– · برتقالي: حكم مؤقت / حملة</div>
             <div>⋯ حافة منقطة: ترسيم غير محقق</div>
+            <div>– – رمادي: حد إداري داخل إمبراطورية</div>
+            <div>– · بنفسجي: إقليم ذو إدارة مشتركة</div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-sm bg-[#8a3b24] opacity-80 shrink-0 border border-[#8a3b24]"></span>
               <span className="font-bold">نطاق إقليمي — راجع درجة الدقة</span>

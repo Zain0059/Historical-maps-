@@ -1,5 +1,7 @@
 import type { SlideData, ControlFeature } from '../types';
 import reference from './referenceGeography.json';
+import romanBoundaries from './romanBoundaries.json';
+import modernHistorical from './modernHistoricalBoundaries.json';
 
 type Point = [number, number];
 export interface BoundarySource { title: string; url: string; scope: string }
@@ -14,12 +16,24 @@ export interface BoundaryPhase {
   capital?: SlideData['capital'];
 }
 export interface BoundaryReview {
+  defaultPhaseId?: string;
   status: 'schematic' | 'partial';
   finding: string;
   sourceIds: string[];
   phases?: BoundaryPhase[];
 }
 export const BOUNDARY_SOURCES: Record<string, BoundarySource> = {
+  nubiaHistory: {title:'Kamrin & Oppenheim — The Land of Nubia (The Met, 2018)',url:'https://www.metmuseum.org/essays/nubia',scope:'إدارة النوبة بواسطة نواب الملك؛ لا يثبت النص عرض نطاق صحراوي أو حداً مساحياً'},
+  barkalHistory: {title:'Learning Sites / Timothy Kendall — Jebel Barkal, Temple B500 (2019)',url:'https://www.learningsites.com/GebelBarkal-2/GB-B500.php',scope:'تفسير حفائر المعبد ومراحله المصرية، ومنها الأسرة 19؛ وجود المعبد ليس إحداثيات لحد سياسي'},
+  barkalPosition: {title:'UNESCO — Gebel Barkal, geographical data',url:'https://whc.unesco.org/en/list/1073/maps/',scope:'موضع جبل البركل، المكوّن 1073-001؛ ليس حدود إقليم نبتة أو النوبة'},
+  megiddoPosition: {title:'UNESCO — Tel Megiddo, geographical data',url:'https://whc.unesco.org/en/list/1108/maps/',scope:'موضع تل مجدّو، المكوّن 1108-001؛ العلامة تعرّف الموقع ولا تحدد مساحة المعركة'},
+  megiddoCampaign: {title:'Pritchard, Megiddo inscription — reproduced by Joshua J. Mark (2017)',url:'https://www.worldhistory.org/article/1102/thutmose-iiis-battle-of-megiddo-inscription/',scope:'نص حملة تحتمس الثالث، بتأريخ تقريبي نحو 1457 ق.م؛ الرواية الملكية لا ترسم حدود الشام'},
+  awmc200: {title:'Ancient World Mapping Center — Roman provinces, 200 CE',url:'https://github.com/AWMC/geodata/tree/master/Cultural-Data/political_shading/roman_empire_ce_200_provinces',scope:'خط الحد الشرقي من بيانات AWMC، السجل 195؛ ODbL 1.0. تعميم أطلسي لا مسح ميداني'},
+  awmcLate: {title:'Ancient World Mapping Center — Provinces after Diocletian',url:'https://github.com/AWMC/geodata/tree/master/Cultural-Data/political_shading/roman_empire_provinces%20post_diocletian',scope:'ثلاثة خطوط تقسيم إداري داخل مصر؛ التاريخ تقريبي بعد دقلديانوس ولا يعمم على 550 م'},
+  cshapes: {title:'Schvitz et al. — CShapes 2.0 (2022)',url:'https://icr.ethz.ch/data/cshapes/',scope:'مصدر تاريخي معمّم؛ لا يُعامل الاحتلال كنقل للسيادة. ترخيص CC BY-NC-SA 4.0'},
+  cshapesDisplay: {title:'CShapes display derivative — fullpuri',url:'https://github.com/harahettarou/fullpuri/tree/HEAD/assets/historical-map/cshapes',scope:'نسخة مشتقة مبسطة هندسياً بمقدار 0.025 درجة؛ بصمات الملفات وطريقة الاستخراج محفوظة في تقرير المصدر'},
+  peace1979: {title:'UN Treaty Series — Egypt–Israel Peace Treaty, 1979',url:'https://treaties.un.org/doc/Publication/UNTS/Volume%201138/volume-1138-I-17855-English.pdf',scope:'المادة الأولى والملحق الأول يميزان السيادة من الانسحاب المرحلي؛ ليس اكتمال الانسحاب في مايو 1979'},
+  west1925: {title:'اتفاق مصر وإيطاليا بشأن الحدود الغربية، 6 ديسمبر 1925',url:'https://lawsociety.ly/en/convention/agreement-concerning-the-western-borders-of-egypt-for-the-year-1925-ad/',scope:'المادة الأولى والخريطة الملحقة والنفاذ المؤقت؛ لا يثبت أن المطالبات السابقة كانت إدارة فعلية'},
   middle: {title:'Adela Oppenheim — Egypt in the Middle Kingdom (The Met, 2019)',url:'https://www.metmuseum.org/essays/egypt-in-the-middle-kingdom-2030-1640-b-c',scope:'إعادة التوحيد وانتقال العاصمة؛ ليس مصدر حدود هندسية'},
   nubia: {title:'Salvoldi & Geus — A Historical Comparative Gazetteer for Nubia (Dotawo 4, 2017)',url:'https://www.academia.edu/35009091/A_historical_comparative_gazetteer_for_Nubia_Salvoldi_Geus_',scope:'موضع سمنة الغربية 21.494253 شمالاً، 30.960949 شرقاً؛ العلامة ليست ترسيماً لحد الدولة'},
   damascus: {title:'UNESCO — Ancient City of Damascus',url:'https://whc.unesco.org/en/list/20/',scope:'موضع مرجعي للمدينة 33°30′39″ شمالاً، 36°18′35″ شرقاً؛ لا يثبت حدود الشام'},
@@ -86,6 +100,13 @@ const cyrene = poly('dependency','قورينائية: نطاق إقليمي تق
 const cyprus: ControlFeature = {type:'dependency',name:'قبرص — إقليم منفصل بحرياً',polygons:rings('Cyprus'),certainty:'generalized',description:'شكل الجزيرة معاصر ومعمم؛ التصنيف التاريخي منفصل عن هندسة الساحل ولا يعني اتصالاً برياً بمصر.',sourceIds:['ptolemy','ne']};
 const levant = poly('disputed_territory','جنوب الشام — جبهة الصراع البطلمي السلوقي',[[31.28,34.25],[32.08,34.85],[32.8,35.1],[33.3,35.3],[33.85,35.6],[34.35,35.8],[34.2,36.25],[33.5,36.2],[32.6,35.85],[31.5,35.5],[31.28,34.25]],'جبهة حروب متعاقبة؛ لا يعني التظليل اشتراكاً إدارياً أو أن كل هذه الرقعة كانت محل نزاع في اليوم نفسه.', ['ptolemy']);
 const limits = 'المراحل لقطات مختارة وليست تسلسلاً سنوياً كاملاً. الأشكال القديمة نطاقات توضيحية؛ لم تُرقمن من أطلس حدود مؤرخ، ولا يجوز حساب مساحة سيادية منها.';
+// Site coordinates locate evidence, never the perimeter of a political territory.
+const megiddoCampaign: ControlFeature={type:'campaign',geometryType:'point',name:'مجدّو — حملة تحتمس الثالث',coords:[[32+35/60+6/3600,35+11/60+3/3600]],certainty:'generalized',sourceIds:['megiddoCampaign','megiddoPosition'],description:'نحو 1457 ق.م؛ العلامة عند التل لتعريف موضع الحملة، وليست مساحة المعركة أو دليلاً على ضم كل الأراضي بينه وبين مصر.'};
+const barkal: ControlFeature={type:'direct_administration',geometryType:'point',name:'جبل البركل — شاهد على الوجود المصري في النوبة',coords:[[18+32/60+13.2/3600,31+49/60+40.9/3600]],certainty:'generalized',sourceIds:['nubiaHistory','barkalHistory','barkalPosition'],description:'شاهد مكاني ضمن سياق إدارة النوبة في الدولة الحديثة. مراحل المعبد تشمل الأسرة 19؛ لا تعني النقطة أن الحد كان يمر هنا بالضبط أو أن كل النوبة كانت ذات وضع واحد.'};
+BOUNDARY_REVIEWS[5]={status:'partial',finding:'أزيل الامتداد الموحد غير الموثق من العرض. فُصلت حملة مجدّو عن شاهد الوجود المصري في النوبة في لقطتين، دون وصل المواقع بحدود مخترعة.',sourceIds:['bronze','nubiaHistory','barkalHistory','barkalPosition','megiddoCampaign','megiddoPosition'],phases:[
+ {id:'new-kingdom-megiddo',year:-1457,label:'نحو 1457 ق.م — حملة مجدّو',summary:'تظهر الحملة بعلامة مستقلة عن القلب المصري. لا تُحوّل حركة الجيش إلى رقعة سيادة دائمة على الشام.',features:[{...egyptZone,sourceIds:['bronze']},megiddoCampaign],sourceIds:['bronze','megiddoCampaign','megiddoPosition'],limitations:'لقطة لموضع الحملة فقط؛ إدارة النوبة ومراكز التبعية في الشام غير مرقمنة هنا، وغيابها لا يعني استقلالها أو فقدها. '+limits},
+ {id:'new-kingdom-ramesside',year:-1250,label:'نحو 1250 ق.م — شاهد من النوبة في العصر الرعمسي',summary:'يظهر جبل البركل كشاهد موضعي في سياق إدارة النوبة بواسطة نواب الملك. لا تمتد رقعة تظليل افتراضية إلى جنوب السودان.',features:[{...egyptZone,sourceIds:['bronze']},barkal],sourceIds:['bronze','nubiaHistory','barkalHistory','barkalPosition'],limitations:'التاريخ لقطة تقريبية داخل عهد رمسيس الثاني، وليس سنة إنشاء مؤكدة للمعبد. جبهة الشام والتبعية والمعاهدة الحثية تحتاج هندسة مستقلة؛ حذف علامة حملة 1457 لا يعني فقد الشام سنة 1250. '+limits},
+]};
 BOUNDARY_REVIEWS[8].phases = [
   {id:'ptolemy-240',year:-240,label:'نحو 240 ق.م — الاتساع البطلمي',summary:'تُعرض مصر وقورينائية وقبرص وجبهة الشام كرقع منفصلة. لا تُملأ مياه المتوسط باعتبارها أرضاً تابعة.',features:[egyptZone,cyrene,cyprus,levant],sourceIds:['ptolemy','late','ne'],limitations:limits},
   {id:'ptolemy-100',year:-100,label:'نحو 100 ق.م — انحسار الممتلكات الخارجية',summary:'لا تُعرض الشام ضمن المملكة. تبقى قبرص وقورينائية منفصلتين؛ لقطة ما قبل انتقال قورينائية إلى روما سنة 96 ق.م.',features:[egyptZone,cyrene,cyprus],sourceIds:['ptolemy'],limitations:limits + ' لم تُرسم تغيّرات استقلال فروع الأسرة والحرب الأهلية داخل مصر.'},
@@ -116,12 +137,36 @@ BOUNDARY_REVIEWS[15]={status:'partial',finding:'فُصلت بداية الحكم
  {id:'ayyubid-1190',year:1190,label:'نحو 1190 — مصر ومراكز التوسع الإقليمي',summary:'تظهر إشارتان منفصلتان لليمن والشام. لا تُرسم بينهما صحراء متصلة ولا حدود تفصيلية لجبهة الصليبيين.',features:[{...egyptZone,sourceIds:['ayyubid']},yemen,damascus],sourceIds:['ayyubid','sanaa','damascus'],limitations:limits+' المواقع تعرّف الأقاليم؛ ليست خريطة كاملة لحكم صلاح الدين.'},
 ]};
 
+const romanLine=(coords:number[][],name:string,sourceId:string):ControlFeature=>({type:'administrative_boundary',geometryType:'line',name,coords:coords.map(([lon,lat])=>[lat,lon]),certainty:'generalized',sourceIds:[sourceId],description:'إحداثيات المصدر محفوظة دون إعادة رسم. يمثل الخط تفسيراً أطلسياً لحد إداري؛ لا يغلق مضلعاً ولا يثبت سيادة مستقلة على أي من جانبيه.'});
+const romanEast=romanBoundaries['roman200-eastern-boundary'].map(f=>romanLine(f.geometry.coordinates,'الحد الشرقي لولاية مصر نحو 200 م','awmc200'));
+BOUNDARY_REVIEWS[9].phases![0].features.push(...romanEast);
+BOUNDARY_REVIEWS[9].phases![0].sourceIds.push('awmc200');
+BOUNDARY_REVIEWS[9].phases!.splice(1,0,{
+ id:'roman-post-diocletian',year:310,label:'أوائل القرن الرابع — تقسيمات ما بعد دقلديانوس',summary:'تُعرض ثلاثة خطوط إدارية من بيانات AWMC؛ ليست حدود دولة مصرية مستقلة ولا خريطة كاملة لكل الولايات.',features:romanBoundaries['roman-post-diocletian'].map((f,i)=>romanLine(f.geometry.coordinates,`تقسيم إداري داخل مصر — خط ${i+1}`,'awmcLate')),sourceIds:['awmcLate','roman'],limitations:'المصدر يحدد مرحلة ما بعد دقلديانوس دون سنة دقيقة. لا تنقل هذه الخطوط إلى القرنين السادس والسابع، ولا تستنتج منها أسماء الولايات أو مساحاتها دون دليل إضافي.'
+});
+function historicalGeometry(code:number|string,start:number):Point[][][] {
+ const f=modernHistorical.features.find(f=>f.properties.code===code&&f.properties.start===start);
+ if(!f)throw new Error(`Missing dated geometry: ${code}/${start}`);
+ const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
+ return (polys as number[][][][]).map(p=>p.map(r=>r.map(([lon,lat])=>[lat,lon] as Point)));
+}
+const datedEgypt=(start:number):ControlFeature=>({type:'direct_administration',name:'مصر — مرجع تاريخي معمّم',polygons:historicalGeometry(651,start),certainty:'generalized',sourceIds:['cshapes','cshapesDisplay'],description:'تاريخ اللقطة محدد؛ الهندسة معممة ولا تمثل كل التحركات العسكرية أو تفاصيل المطالبات الحدودية.'});
+const modernLimits='تبسيط جغرافي للعرض الإقليمي، لا يصلح لقياس الحدود ميدانياً. لا تُنقل إليه رقع حلايب وبئر طويل المعاصرة تلقائياً، ولا يمثل كل جبهات الحرب أو الوضع في غزة.';
+BOUNDARY_REVIEWS[20]={status:'partial',defaultPhaseId:'egypt-sudan-1935',finding:'استُبدل المضلع اليدوي بلقطة سنة 1935 موثقة المصدر، وفُصل السودان ذو الإدارة المشتركة عن مصر.',sourceIds:['cshapes','cshapesDisplay','west1925','sudan'],phases:[
+ {id:'egypt-sudan-1935',year:1935,label:'1935 — مصر والسودان ذو الإدارة المشتركة',summary:'تظهر مصر بعد تسوية الحدود الغربية، ويظهر السودان كإقليم منفصل ذي إدارة أنجلو-مصرية مشتركة؛ لا يدمجان في مساحة سيادية واحدة.',features:[datedEgypt(19251206),{type:'joint_administration',name:'السودان — إدارة أنجلو-مصرية مشتركة',polygons:historicalGeometry(625,19340720),certainty:'generalized',sourceIds:['cshapes','cshapesDisplay','sudan'],description:'فصل الإقليم لا يعني تماثل نفوذ الطرفين داخل الإدارة المشتركة.'}],sourceIds:['cshapes','cshapesDisplay','west1925','sudan'],limitations:modernLimits},
+]};
+BOUNDARY_REVIEWS[21]={status:'partial',defaultPhaseId:'modern-reference',finding:'فُصلت الحدود المرجعية عن السيطرة أثناء احتلال سيناء، مع إبقاء النزاعات المعاصرة في لقطة مستقلة.',sourceIds:['cshapes','cshapesDisplay','peace1979','ne','sudan'],phases:[
+ {id:'egypt-1966',year:1966,label:'1966 — قبل حرب يونيو',summary:'مرجع مصر السابق لحرب يونيو 1967. لا يضم غزة إلى السيادة المصرية، ولا يعمم على كل سنوات الجمهورية.',features:[datedEgypt(19251206)],sourceIds:['cshapes','cshapesDisplay'],limitations:modernLimits},
+ {id:'egypt-1968',year:1968,label:'1968 — سيناء تحت الاحتلال الإسرائيلي',summary:'تفصل الخريطة نطاق السيطرة المصرية عن سيناء المحتلة. التمييز البرتقالي لا يعني انتقال السيادة المصرية على سيناء.',features:[{...datedEgypt(19670610),name:'نطاق السيطرة المصرية — لقطة 1968'},{type:'temporary_occupation',name:'سيناء — تحت الاحتلال الإسرائيلي في 1968',polygons:historicalGeometry('sinai-1968',19680101),certainty:'generalized',sourceIds:['cshapes','cshapesDisplay','peace1979'],description:'رقعة مشتقة من اختلاف الحلقة الساحلية وحد القناة بين سجلي CShapes؛ لا تمثل خطوط 1973 أو مراحل الانسحاب.'}],sourceIds:['cshapes','cshapesDisplay','peace1979'],limitations:modernLimits+' استُبعدت فروق التبسيط الصغيرة قرب بحيرة المنزلة، ولم تُفسر كتغيرات سياسية.'},
+ {id:'modern-reference',year:2026,label:'مرجع معاصر — الحدود واختلاف المطالبات',summary:'مرجع Natural Earth المعمم، مع فصل حلايب وبئر طويل عن الحدود غير المختلف عليها. لا يحسم العرض السيادة قانونياً.',features:[{type:'direct_administration',name:'مصر — مرجع معاصر معمّم',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES],sourceIds:['ne','sudan'],limitations:'مصدر شرح المطالبات مؤرخ في 2019، وليس تحديثاً آنياً. لم تُرقمن رقعة وادي حلفا ولا مراحل 1973–1982 أو طابا في هذه اللقطة.'},
+]};
+
 export function getReviewedSlide(slide: SlideData, phaseId?: string): SlideData {
  const review=BOUNDARY_REVIEWS[slide.id];
  if (!review) return slide;
- const phase=review.phases?.find(p=>p.id===phaseId) ?? review.phases?.[0];
- if (slide.id===0 || slide.id===21) return {...slide, boundaryReview:review, headline: slide.id===21 ? 'مصر المعاصرة: الحدود ومناطق اختلاف المطالبات' : slide.headline, reconstructionDate:'مرجع معاصر معمّم — Natural Earth', text:'<p>مرجع جغرافي معاصر معمّم، مع فصل الإدارة الفعلية عن اختلاف المطالبات. عرض خطوط الخريطة لا يفصل قانونياً في السيادة، ولا يمثل مراحل الحروب أو الانسحاب منذ 1952.</p>', keyEvents:undefined, frontierCities:undefined, borderDescription:review.finding, extent:{core:[],controlFeatures:[{type:'direct_administration',name:'مرجع مصر المعاصر — ليس حكماً بالسيادة',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES]}, sources:undefined,geographicalStats:undefined};
- if (phase) return {...slide,capital:phase.capital,boundaryReview:review,boundaryPhase:phase,reconstructionDate:phase.label,text:`<p>${phase.summary}</p>`,borderDescription:phase.limitations,extent:{core:[],controlFeatures:phase.features},keyEvents:undefined,frontierCities:undefined,geographicalStats:undefined,sources:undefined};
+ const phase=review.phases?.find(p=>p.id===phaseId) ?? review.phases?.find(p=>p.id===review.defaultPhaseId) ?? review.phases?.[0];
+ if (slide.id===0) return {...slide, boundaryReview:review,reconstructionDate:'مرجع معاصر معمّم — Natural Earth', text:'<p>مرجع جغرافي معاصر معمّم، مع فصل الإدارة الفعلية عن اختلاف المطالبات. عرض خطوط الخريطة لا يفصل قانونياً في السيادة.</p>', keyEvents:undefined, frontierCities:undefined, borderDescription:review.finding, extent:{core:[],controlFeatures:[{type:'direct_administration',name:'مرجع مصر المعاصر — ليس حكماً بالسيادة',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES]}, sources:undefined,geographicalStats:undefined};
+ if (phase) return {...slide,headline:slide.id===5?'الدولة الحديثة — الإدارة والحملات في لقطات مؤرخة':slide.id===21?'مصر: الحدود والسيطرة والمناطق المختلف عليها':slide.headline,capital:phase.capital,boundaryReview:review,boundaryPhase:phase,reconstructionDate:phase.label,text:`<p>${phase.summary}</p>`,borderDescription:phase.limitations,extent:{core:[],controlFeatures:phase.features},keyEvents:undefined,frontierCities:undefined,geographicalStats:undefined,sources:undefined};
  // Retain the original data for comparison, visibly classified as unverified;
  // never invent phase geometries from a chronology-only source.
  return {...slide,boundaryReview:review,borderDescription:review.finding,extent:slide.extent?{...slide.extent,coreLabel:'رسم سابق غير محقق مكانياً',secondaryLabel:'امتداد سابق غير محقق مكانياً',controlFeatures:undefined}:undefined};
