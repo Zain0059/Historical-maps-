@@ -591,29 +591,7 @@ h1, h2, h3, h4, .font-serif {
 }
 
 /* Subtle antique parchment grain scanlines overlay */
-.temporal-parchment-grain {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(169, 134, 63, 0.2) 1px, transparent 1px);
-  background-size: 14px 14px;
-  mix-blend-mode: overlay;
-  opacity: 0.4;
-  pointer-events: none;
-}
 
-/* Dynamic CSS filter on the map container during temporal shift */
-.historical-map-canvas {
-  transition: filter 400ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-  will-change: filter;
-}
-
-.historical-map-canvas.is-temporal-shifting {
-  filter: sepia(0.3) contrast(1.1) saturate(0.85) brightness(0.95);
-}
-
-/* ==========================================================================
-   Historical Document Textures & Paper Grains (نسيج الخرائط والوثائق التاريخية)
-   ========================================================================== */
 
 #historical-leaflet-map {
   background-color: #f5f0e3 !important;
@@ -623,123 +601,11 @@ h1, h2, h3, h4, .font-serif {
   inset: 0 !important;
 }
 
-/* Leaflet Tile Transitions for Era Historical Cartographic Grading */
-#historical-leaflet-map .leaflet-tile-pane .leaflet-tile {
-  transition: filter 350ms ease !important;
-  will-change: filter;
+
+/* Keep provider credits legible without covering the mobile map. */
+#historical-leaflet-map .leaflet-control-attribution {
+  font-size: 10px;
+  line-height: 1.4;
+  max-width: min(280px, 65vw);
+  white-space: normal;
 }
-
-/* Ultra-subtle tinting that preserves 100% legibility of rivers, labels, and borders */
-.era-texture-ancient:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
-  filter: sepia(0.06) contrast(1.03) brightness(0.99);
-}
-
-.era-texture-greco_roman:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
-  filter: sepia(0.04) contrast(1.02) brightness(1.0);
-}
-
-.era-texture-islamic_medieval:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
-  filter: sepia(0.05) contrast(1.02) brightness(0.99);
-}
-
-.era-texture-modern:not(.era-texture-disabled) .leaflet-tile-pane .leaflet-tile {
-  filter: contrast(1.02) brightness(1.0);
-}
-
-/* Clean reset when user disables document texture */
-.era-texture-disabled .leaflet-tile-pane .leaflet-tile {
-  filter: none !important;
-}
-
-/* Master Overlay for tactile document grain & authentic parchment texture */
-.historical-texture-overlay-master {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 24; /* Positioned directly above tile pane, below vectors, markers & controls */
-  overflow: hidden;
-  opacity: 0.18; /* Delicate, transparent watermark so original base map is fully visible */
-  transition: opacity 400ms ease;
-}
-
-.historical-texture-sublayer {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 450ms ease;
-  will-change: opacity;
-}
-
-.historical-texture-sublayer.is-active {
-  opacity: 1;
-}
-
-/* Texture 1: Ancient Egyptian Papyrus (بردي فرعوني أصيل) */
-.texture-papyrus {
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgba(169, 134, 63, 0.08) 0px,
-      rgba(169, 134, 63, 0.08) 1.5px,
-      transparent 1.5px,
-      transparent 6px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(169, 134, 63, 0.08) 0px,
-      rgba(169, 134, 63, 0.08) 1.5px,
-      transparent 1.5px,
-      transparent 8px
-    );
-  mix-blend-mode: multiply;
-}
-
-/* Texture 2: Alexandrian Vellum & Ptolemaic Graticule (رقّ سكندري ببطليموس) */
-.texture-vellum {
-  background-image:
-    linear-gradient(45deg, rgba(169, 134, 63, 0.05) 1px, transparent 1px),
-    linear-gradient(-45deg, rgba(169, 134, 63, 0.05) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mix-blend-mode: multiply;
-}
-
-/* Texture 3: Islamic Medieval Laid Cotton Paper (ورق قطني مشرقي مدكوك) */
-.texture-laid-paper {
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgba(169, 134, 63, 0.09) 0px,
-      rgba(169, 134, 63, 0.09) 1px,
-      transparent 1px,
-      transparent 28px
-    );
-  mix-blend-mode: multiply;
-}
-
-/* Texture 4: Modern Cadastral Lithograph Plate (طباعة حجرية مساحية ملكية) */
-.texture-lithograph {
-  background-image:
-    radial-gradient(circle, rgba(36, 29, 18, 0.08) 1px, transparent 1px);
-  background-size: 16px 16px;
-  mix-blend-mode: multiply;
-}
-
-/* Dynamic Paper Grain Noise */
-.document-tactile-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.15;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-  background-repeat: repeat;
-  background-size: 180px 180px;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.35'/%3E%3C/svg%3E");
-  transition: opacity 400ms ease;
-}
-
-.historical-map-canvas.is-texture-shifting {
-  filter: none !important;
-}
-
-
