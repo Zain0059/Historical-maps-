@@ -907,7 +907,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
       {currentSlide.boundaryReview && <div className="absolute left-2 top-2 z-[490] max-w-[43%] bg-white/95 border border-stone-400 p-1.5 rounded text-[10px] text-stone-900 pointer-events-none" dir="rtl">
         {currentSlide.boundaryPhase?.label ?? (currentSlide.boundaryReview.status==='schematic'?'ترسيم سابق غير محقق':'مرجع معاصر معمّم')}
-        <div>▧ نزاع · ⋯ عدم يقين</div>
+        <div>{currentSlide.id===1||currentSlide.id===2?'الرمادي سياق جغرافي · النقاط شواهد مواقع':'▧ نزاع · ⋯ عدم يقين'}</div>
       </div>}
       {currentSlide.boundaryPhase?.sourceIds.some(id=>id==='cshapes'||id.startsWith('awmc')) && <div className="absolute bottom-1 left-1 z-[490] max-w-[45%] bg-white/95 px-1 text-[9px] text-stone-900 leading-tight" dir="ltr">
         {currentSlide.boundaryPhase.sourceIds.includes('cshapes')?<><a href="https://icr.ethz.ch/data/cshapes/" target="_blank" rel="noopener noreferrer">CShapes / Schvitz et al.</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a></>:<><a href="https://awmc.unc.edu/gis-data/" target="_blank" rel="noopener noreferrer">AWMC</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">ODbL 1.0</a></>}

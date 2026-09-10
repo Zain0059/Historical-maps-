@@ -1,0 +1,36 @@
+{
+  "source": "https://www.ifao.egnet.net/_lib/cartosites/json-sites.php",
+  "accessed": "2026-09-10",
+  "sites": {
+    "balat": {
+      "nom_fr": "Balat",
+      "lat": "25.559380",
+      "lon": "29.291320",
+      "point_descr": "angle N du Palais des gouverneurs de Ayn Asil"
+    },
+    "bouto": {
+      "nom_fr": "Bouto",
+      "lat": "31.198170",
+      "lon": "30.743930",
+      "point_descr": "bains P10 du kôm A"
+    },
+    "ouadi-el-jarf": {
+      "nom_fr": "Ouadi el-Jarf",
+      "lat": "28.898770",
+      "lon": "32.624220",
+      "point_descr": "sommet butte galerie, à corriger"
+    },
+    "saqqara": {
+      "nom_fr": "Saqqara (MafS)",
+      "lat": "29.854890",
+      "lon": "31.218940",
+      "point_descr": "entrée N de la pyramide de Pépy I"
+    },
+    "hatnoub": {
+      "nom_fr": "Hatnoub",
+      "lat": "27.520410",
+      "lon": "31.023980",
+      "point_descr": "entrée carrière P "
+    }
+  }
+}

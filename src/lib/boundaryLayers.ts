@@ -2,6 +2,8 @@ import L from 'leaflet';
 import type { ControlFeature, ControlType } from '../types';
 import { BOUNDARY_SOURCES } from '../data/boundaryReview';
 export const CONTROL_STYLES: Record<ControlType, {color:string; dashArray?:string; label:string}> = {
+ geographic_context:{color:'#64748b',dashArray:'2 5',label:'سياق جغرافي — ليس حدود سيادة'},
+ archaeological_site:{color:'#4f46e5',label:'شاهد أثري / موقع — ليس حداً'},
  administrative_boundary:{color:'#475569',dashArray:'10 3',label:'حد إداري تاريخي — ليس حدود دولة مستقلة'},
  joint_administration:{color:'#7c3aed',dashArray:'10 3 2 3',label:'إدارة مشتركة — إقليم منفصل'},
  direct_administration:{color:'#8a3b24',label:'إدارة مباشرة / قلب إقليمي'},

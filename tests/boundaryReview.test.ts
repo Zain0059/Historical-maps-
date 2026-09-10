@@ -79,4 +79,23 @@ const raid=getReviewedSlide(saite,'saite-593').extent!.controlFeatures!;
 assert.ok(raid.some(f=>f.type==='campaign'&&f.geometryType==='point'));
 assert.ok(!getReviewedSlide(saite,'saite-550').extent!.controlFeatures!.some(f=>f.type==='campaign'));
 for(const slide of ALL_SLIDES) assert.equal(getReviewedSlide(slide).geographicalStats,undefined,'Do not present unverified maximum reach as geographic fact');
+for (const [eraId,count] of [[1,3],[2,4]]) {
+ const slide=ALL_SLIDES.find(s=>s.id===eraId)!;
+ const phases=BOUNDARY_REVIEWS[eraId].phases!;
+ assert.equal(phases.length,count);
+ assert.equal(new Set(phases.map(p=>p.id)).size,count);
+ assert.ok(phases.every((p,i)=>i===0||p.year>phases[i-1].year),'Chronological map order');
+ for(const phase of phases){
+  const result=getReviewedSlide(slide,phase.id);
+  assert.ok(phase.changes&&phase.narrative?.length===2,'Each map needs its own explanation');
+  assert.equal(result.extent!.secondary,undefined);
+  assert.ok(phase.features.filter(f=>f.geometryType!=='point').every(f=>f.type==='geographic_context'),'No unverified ancient sovereign outline');
+  assert.ok(phase.features.every(f=>(f.sourceIds??[]).every(id=>phase.sourceIds.includes(id))),'Show every feature source in this phase');
+ }
+}
+const oldPhases=BOUNDARY_REVIEWS[2].phases!;
+assert.equal(oldPhases.filter(p=>p.features.some(f=>f.name?.startsWith('وادي الجرف'))).length,1,'The port must not persist across all Old Kingdom dynasties');
+assert.ok(oldPhases[1].features.some(f=>f.name?.startsWith('وادي الجرف')&&f.certainty==='schematic'));
+assert.ok(oldPhases[3].features.some(f=>f.name?.startsWith('عين أصيل')&&f.coords?.[0][0]===25.559380));
+assert.ok(oldPhases.slice(0,3).every(p=>!p.features.some(f=>f.name?.startsWith('عين أصيل'))),'Do not backdate Sixth Dynasty governors');
 console.log('Boundary audit coverage, phase isolation, source references, coordinates, and dispute semantics passed.');
