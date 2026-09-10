@@ -1,4 +1,5 @@
 import type { SlideData, ControlFeature } from '../types';
+import { FIRST_TWO_SOURCES, firstTwoReviews } from './firstTwoEras';
 import reference from './referenceGeography.json';
 import romanBoundaries from './romanBoundaries.json';
 import modernHistorical from './modernHistoricalBoundaries.json';
@@ -6,6 +7,8 @@ import modernHistorical from './modernHistoricalBoundaries.json';
 type Point = [number, number];
 export interface BoundarySource { title: string; url: string; scope: string }
 export interface BoundaryPhase {
+  narrative?: string[];
+  changes?: string;
   id: string;
   label: string;
   year: number;
@@ -23,6 +26,7 @@ export interface BoundaryReview {
   phases?: BoundaryPhase[];
 }
 export const BOUNDARY_SOURCES: Record<string, BoundarySource> = {
+  ...FIRST_TWO_SOURCES,
   nubiaHistory: {title:'Kamrin & Oppenheim — The Land of Nubia (The Met, 2018)',url:'https://www.metmuseum.org/essays/nubia',scope:'إدارة النوبة بواسطة نواب الملك؛ لا يثبت النص عرض نطاق صحراوي أو حداً مساحياً'},
   barkalHistory: {title:'Learning Sites / Timothy Kendall — Jebel Barkal, Temple B500 (2019)',url:'https://www.learningsites.com/GebelBarkal-2/GB-B500.php',scope:'تفسير حفائر المعبد ومراحله المصرية، ومنها الأسرة 19؛ وجود المعبد ليس إحداثيات لحد سياسي'},
   barkalPosition: {title:'UNESCO — Gebel Barkal, geographical data',url:'https://whc.unesco.org/en/list/1073/maps/',scope:'موضع جبل البركل، المكوّن 1073-001؛ ليس حدود إقليم نبتة أو النوبة'},
@@ -165,6 +169,8 @@ BOUNDARY_REVIEWS[21]={status:'partial',defaultPhaseId:'modern-reference',finding
  {id:'egypt-1968',year:1968,label:'1968 — سيناء تحت الاحتلال الإسرائيلي',summary:'تفصل الخريطة نطاق السيطرة المصرية عن سيناء المحتلة. التمييز البرتقالي لا يعني انتقال السيادة المصرية على سيناء.',features:[{...datedEgypt(19670610),name:'نطاق السيطرة المصرية — لقطة 1968'},{type:'temporary_occupation',name:'سيناء — تحت الاحتلال الإسرائيلي في 1968',polygons:historicalGeometry('sinai-1968',19680101),certainty:'generalized',sourceIds:['cshapes','cshapesDisplay','peace1979'],description:'رقعة مشتقة من اختلاف الحلقة الساحلية وحد القناة بين سجلي CShapes؛ لا تمثل خطوط 1973 أو مراحل الانسحاب.'}],sourceIds:['cshapes','cshapesDisplay','peace1979'],limitations:modernLimits+' استُبعدت فروق التبسيط الصغيرة قرب بحيرة المنزلة، ولم تُفسر كتغيرات سياسية.'},
  {id:'modern-reference',year:2026,label:'مرجع معاصر — الحدود واختلاف المطالبات',summary:'مرجع Natural Earth المعمم، مع فصل حلايب وبئر طويل عن الحدود غير المختلف عليها. لا يحسم العرض السيادة قانونياً.',features:[{type:'direct_administration',name:'مصر — مرجع معاصر معمّم',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES],sourceIds:['ne','sudan'],limitations:'مصدر شرح المطالبات مؤرخ في 2019، وليس تحديثاً آنياً. لم تُرقمن رقعة وادي حلفا ولا مراحل 1973–1982 أو طابا في هذه اللقطة.'},
 ]};
+
+Object.assign(BOUNDARY_REVIEWS, firstTwoReviews(nile));
 
 export function getReviewedSlide(slide: SlideData, phaseId?: string): SlideData {
  const review=BOUNDARY_REVIEWS[slide.id];
