@@ -20,7 +20,14 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const currentSlide = slides[currentIndex] || slides[0];
 
-  // Auto-scroll to keep active era centered in the timeline
+  const eraGroups: { era: SlideData; entries: { slide: SlideData; index: number }[] }[] = [];
+  slides.forEach((slide: SlideData, index: number) => {
+    const previous = eraGroups[eraGroups.length - 1];
+    if (previous?.era.id === slide.id) previous.entries.push({ slide, index });
+    else eraGroups.push({ era: slide, entries: [{ slide, index }] });
+  });
+
+  // Keep the selected map visible within its parent era.
   useEffect(() => {
     if (!scrollContainerRef.current) return;
     const activeEl = scrollContainerRef.current.querySelector(`[data-index="${currentIndex}"]`) as HTMLElement;
@@ -35,45 +42,67 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
 
   return (
     <div id="timeline-bar" className="bg-[#1c261f] border-t border-[#a9863f]/30 select-none z-30">
-      {/* Horizontal timeline cards (Compact) */}
-      <div className="px-2 py-0.5 border-b border-[#a9863f]/20 bg-[#17211b]">
+      {/* Era headings span their own row of map stages. */}
+      <div className="px-2 py-1 border-b border-[#a9863f]/20 bg-[#17211b]">
         <div
           ref={scrollContainerRef}
-          className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-thin scrollbar-thumb-[#a9863f] scrollbar-track-transparent"
+          dir="rtl"
+          className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-[#a9863f] scrollbar-track-transparent"
           style={{ scrollbarWidth: 'thin' }}
         >
-          {slides.map((slide, idx) => {
-            const isActive = idx === currentIndex;
-            const isOverview = idx === 0;
-
+          {eraGroups.map(({ era, entries }) => {
+            const isActiveEra = entries.some(entry => entry.index === currentIndex);
+            const isOverview = era.id === 0;
+            const hasStages = entries.length > 1;
+            const headingId = `timeline-era-${era.id}`;
             return (
-              <button
-                key={`${slide.id}-${slide.boundaryPhase?.id ?? "era"}`}
-                id={`timeline-node-${idx}`}
-                data-index={idx}
-                aria-current={isActive ? "step" : undefined}
-                aria-label={`${slide.headline}${slide.boundaryPhase ? ` — ${slide.boundaryPhase.label}` : ""}`}
-                onClick={() => onSelectSlide(idx)}
-                className={`group flex-shrink-0 px-2 py-0.5 rounded text-center transition-all duration-150 border-b-2 ${
-                  isActive
-                    ? 'bg-[#2a382e] border-[#8a3b24] text-[#e9e0c7] shadow-xs'
-                    : 'bg-transparent border-transparent text-[#d9cfae]/60 hover:text-[#e9e0c7] hover:bg-[#222e25]'
-                }`}
-                style={{
-                  minWidth: isOverview ? '62px' : slide.boundaryPhase ? '170px' : '78px',
-                  maxWidth: slide.boundaryPhase ? '220px' : '120px'
-                }}
+              <section
+                key={era.id}
+                aria-labelledby={headingId}
+                className={`shrink-0 rounded border ${isActiveEra ? 'border-[#a9863f]/70 bg-[#222e25]' : 'border-[#a9863f]/20'}`}
               >
-                <span className={`block font-serif text-[9.5px] leading-none ${isActive ? 'text-[#a9863f] font-bold' : 'text-[#a9863f]/80'}`}>
-                  {isOverview ? 'البداية' : `الحقبة ${slide.id}${slide.boundaryPhase ? ` · ${slide.categoryLabel}` : ''}`}
-                </span>
-                <span
-                  className={`block text-[10px] mt-0.5 truncate leading-tight ${isActive ? 'font-bold text-white' : 'font-medium'}`}
-                  title={slide.boundaryPhase?.label ?? slide.headline}
-                >
-                  {slide.boundaryPhase ? slide.boundaryPhase.label : isOverview ? 'مقدمة' : slide.headline.replace(/^(عصر|الدولة|المملكة|جمهورية)\s+/, '')}
-                </span>
-              </button>
+                <h3 id={headingId} className="border-b border-[#a9863f]/30">
+                  <button
+                    onClick={() => onSelectSlide(isActiveEra ? currentIndex : entries[0].index)}
+                    className={`block w-full px-2 py-1 text-start text-[11px] font-bold rounded-t focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e9e0c7] ${isActiveEra ? 'text-[#e9e0c7] bg-[#344032]' : 'text-[#a9863f] hover:bg-[#2a382e]'}`}
+                    title={era.headline}
+                  >
+                    <span className="sticky right-0 block w-max max-w-[260px] truncate">
+                      {isOverview ? 'البداية' : `الحقبة ${era.id} · ${era.categoryLabel}`}
+                      {hasStages && <span className="ms-2 text-[10px] font-normal">({entries.length} مراحل)</span>}
+                    </span>
+                  </button>
+                </h3>
+                <div role="group" aria-label={`خرائط ${era.categoryLabel}`} className="flex gap-1 p-1">
+                  {entries.map(({ slide, index }, phaseIndex) => {
+                    const isActive = index === currentIndex;
+                    const label = hasStages
+                      ? slide.boundaryPhase!.label.replace(/^\d+\s*\/\s*\d+\s*—\s*/, '')
+                      : isOverview ? 'مقدمة' : slide.headline;
+                    return (
+                      <button
+                        key={`${slide.id}-${slide.boundaryPhase?.id ?? 'era'}`}
+                        id={`timeline-node-${index}`}
+                        data-index={index}
+                        aria-current={isActive ? 'step' : undefined}
+                        aria-label={`${era.headline} — ${label}`}
+                        onClick={() => onSelectSlide(index)}
+                        title={label}
+                        className={`shrink-0 rounded px-2 py-1 text-center border-b-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e9e0c7] ${hasStages ? 'w-[150px]' : 'w-[130px]'} ${
+                          isActive
+                            ? 'bg-[#8a3b24] border-[#d5b76e] text-white'
+                            : 'border-transparent text-[#d9cfae]/80 hover:bg-[#2a382e] hover:text-white'
+                        }`}
+                      >
+                        <span className="block text-[9px] leading-tight opacity-80">
+                          {hasStages ? `المرحلة ${phaseIndex + 1}` : isOverview ? 'الأطلس' : 'خريطة الحقبة'}
+                        </span>
+                        <span className="block text-[10px] leading-tight mt-0.5 truncate">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
             );
           })}
         </div>
@@ -162,7 +191,7 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
               id="nav-last-era-btn"
               onClick={() => onSelectSlide(slides.length - 1)}
               disabled={currentIndex === slides.length - 1}
-              title="العصر المعاصر (المعاصر)"
+              title="العصر المعاصر"
               className="p-1 rounded text-[#d9cfae]/70 hover:text-[#e9e0c7] hover:bg-[#2a382e] disabled:opacity-20 disabled:pointer-events-none transition-colors"
             >
               <ChevronsLeft className="w-3.5 h-3.5" />
