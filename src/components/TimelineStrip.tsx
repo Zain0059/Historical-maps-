@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { SlideData } from '../types';
-import { ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, History } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft } from 'lucide-react';
 
 interface TimelineStripProps {
   slides: SlideData[];
@@ -48,9 +48,11 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
 
             return (
               <button
-                key={slide.id}
+                key={`${slide.id}-${slide.boundaryPhase?.id ?? "era"}`}
                 id={`timeline-node-${idx}`}
                 data-index={idx}
+                aria-current={isActive ? "step" : undefined}
+                aria-label={`${slide.headline}${slide.boundaryPhase ? ` — ${slide.boundaryPhase.label}` : ""}`}
                 onClick={() => onSelectSlide(idx)}
                 className={`group flex-shrink-0 px-2 py-0.5 rounded text-center transition-all duration-150 border-b-2 ${
                   isActive
@@ -58,18 +60,18 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
                     : 'bg-transparent border-transparent text-[#d9cfae]/60 hover:text-[#e9e0c7] hover:bg-[#222e25]'
                 }`}
                 style={{
-                  minWidth: isOverview ? '62px' : '78px',
-                  maxWidth: '120px'
+                  minWidth: isOverview ? '62px' : slide.boundaryPhase ? '170px' : '78px',
+                  maxWidth: slide.boundaryPhase ? '220px' : '120px'
                 }}
               >
                 <span className={`block font-serif text-[9.5px] leading-none ${isActive ? 'text-[#a9863f] font-bold' : 'text-[#a9863f]/80'}`}>
-                  {isOverview ? 'البداية' : `العصر ${slide.id}`}
+                  {isOverview ? 'البداية' : `الحقبة ${slide.id}${slide.boundaryPhase ? ` · ${slide.categoryLabel}` : ''}`}
                 </span>
                 <span
                   className={`block text-[10px] mt-0.5 truncate leading-tight ${isActive ? 'font-bold text-white' : 'font-medium'}`}
-                  title={slide.headline}
+                  title={slide.boundaryPhase?.label ?? slide.headline}
                 >
-                  {isOverview ? 'مقدمة' : slide.headline.replace(/^(عصر|الدولة|المملكة|جمهورية)\s+/, '')}
+                  {slide.boundaryPhase ? slide.boundaryPhase.label : isOverview ? 'مقدمة' : slide.headline.replace(/^(عصر|الدولة|المملكة|جمهورية)\s+/, '')}
                 </span>
               </button>
             );
@@ -86,7 +88,7 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
               id="nav-first-era-btn"
               onClick={() => onSelectSlide(0)}
               disabled={currentIndex === 0}
-              title="أول العصور (3200 ق.م)"
+              title="أول العصور (3100 ق.م)"
               className="p-1 rounded text-[#d9cfae]/70 hover:text-[#e9e0c7] hover:bg-[#2a382e] disabled:opacity-20 disabled:pointer-events-none transition-colors"
             >
               <ChevronsRight className="w-3.5 h-3.5" />
@@ -96,7 +98,7 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
               id="nav-prev-btn"
               onClick={onPrev}
               disabled={currentIndex === 0}
-              title="الحقبة السابقة"
+              title="الخريطة السابقة" aria-label="الخريطة السابقة"
               className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border border-[#a9863f]/40 bg-[#1c261f] text-[#e9e0c7] hover:bg-[#a9863f] hover:text-[#141c17] disabled:opacity-25 disabled:pointer-events-none transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5" />
@@ -109,16 +111,16 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
             {/* Active Era Chip */}
             <div className="hidden md:flex items-center gap-1.5 shrink-0 truncate max-w-[200px] lg:max-w-[260px]">
               <span className="bg-[#8a3b24] text-white font-bold text-[10px] px-1.5 py-0.2 rounded shadow-xs shrink-0">
-                {currentIndex === 0 ? 'مقدمة' : `الحقبة ${currentIndex}`}
+                {currentIndex === 0 ? 'مقدمة' : `الحقبة ${currentSlide.id}`}
               </span>
               <span className="text-[#f2b880] font-serif font-bold text-xs truncate">
-                {currentSlide.headline}
+                {currentSlide.boundaryPhase?.label ?? currentSlide.headline}
               </span>
             </div>
 
             {/* Slider track with dates */}
             <span className="text-[10px] font-serif text-[#d9cfae]/60 shrink-0 select-none hidden xs:inline">
-              3200 ق.م
+              3100 ق.م
             </span>
 
             <div className="relative flex-1 flex items-center py-0.5">
@@ -131,15 +133,15 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
                 value={currentIndex}
                 onChange={(e) => onSelectSlide(Number(e.target.value))}
                 onInput={(e) => onSelectSlide(Number((e.target as HTMLInputElement).value))}
-                aria-label="شريط التمرير الزمني السريع بين الحقب التاريخية"
-                aria-valuetext={currentSlide.headline}
+                aria-label="شريط التمرير الزمني السريع بين الخرائط والمراحل التاريخية"
+                aria-valuetext={currentSlide.boundaryPhase?.label ?? currentSlide.headline}
                 className="timeline-scrubber-slider w-full z-10"
-                title={`اسحب للتمرير السريع: ${currentSlide.headline}`}
+                title={`اسحب للتمرير السريع: ${currentSlide.boundaryPhase?.label ?? currentSlide.headline}`}
               />
             </div>
 
             <span className="text-[10px] font-serif text-[#d9cfae]/60 shrink-0 select-none hidden xs:inline">
-              1989 م
+              المعاصر
             </span>
           </div>
 
@@ -149,7 +151,7 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
               id="nav-next-btn"
               onClick={onNext}
               disabled={currentIndex === slides.length - 1}
-              title="الحقبة التالية"
+              title="الخريطة التالية" aria-label="الخريطة التالية"
               className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border border-[#a9863f]/40 bg-[#1c261f] text-[#e9e0c7] hover:bg-[#a9863f] hover:text-[#141c17] disabled:opacity-25 disabled:pointer-events-none transition-colors"
             >
               <span className="hidden sm:inline">التالي</span>
@@ -160,7 +162,7 @@ export const TimelineStrip: React.FC<TimelineStripProps> = ({
               id="nav-last-era-btn"
               onClick={() => onSelectSlide(slides.length - 1)}
               disabled={currentIndex === slides.length - 1}
-              title="العصر المعاصر (1989 م)"
+              title="العصر المعاصر (المعاصر)"
               className="p-1 rounded text-[#d9cfae]/70 hover:text-[#e9e0c7] hover:bg-[#2a382e] disabled:opacity-20 disabled:pointer-events-none transition-colors"
             >
               <ChevronsLeft className="w-3.5 h-3.5" />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ALL_SLIDES } from './data/historicalData';
 import { getReviewedSlide } from './data/boundaryReview';
+import { buildTimelineEntries, findTimelineIndex } from './lib/timelineEntries';
 import { PeriodCategory } from './types';
 import { Header } from './components/Header';
 import { AtlasMap } from './components/AtlasMap';
@@ -20,13 +21,23 @@ export default function App() {
   const [phaseByEra, setPhaseByEra] = useState<Record<number, string>>({});
   const currentSlide = useMemo(() => getReviewedSlide(ALL_SLIDES[currentIndex], phaseByEra[ALL_SLIDES[currentIndex].id]), [currentIndex, phaseByEra]);
 
+  const timelineEntries = useMemo(() => buildTimelineEntries(ALL_SLIDES), []);
+  const timelineSlides = useMemo(() => timelineEntries.map(entry => entry.slide), [timelineEntries]);
+  const timelineIndex = findTimelineIndex(timelineEntries, currentIndex, currentSlide.boundaryPhase?.id);
+  const handleSelectTimeline = useCallback((index: number) => {
+    const entry = timelineEntries[index];
+    if (!entry) return;
+    setCurrentIndex(entry.eraIndex);
+    if (entry.phaseId) {
+      setPhaseByEra(prev => ({...prev, [entry.slide.id]: entry.phaseId!}));
+    }
+  }, [timelineEntries]);
   const handlePrev = useCallback(() => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
-  }, []);
-
+    handleSelectTimeline(Math.max(0, timelineIndex - 1));
+  }, [handleSelectTimeline, timelineIndex]);
   const handleNext = useCallback(() => {
-    setCurrentIndex(prev => Math.min(ALL_SLIDES.length - 1, prev + 1));
-  }, []);
+    handleSelectTimeline(Math.min(timelineEntries.length - 1, timelineIndex + 1));
+  }, [handleSelectTimeline, timelineEntries.length, timelineIndex]);
 
   // Keyboard navigation listener (Arrow Left/Right)
   useEffect(() => {
@@ -138,9 +149,9 @@ export default function App() {
       {/* Bottom Timeline and Navigation Bar */}
       <footer className="flex-shrink-0 z-20">
         <TimelineStrip
-          slides={ALL_SLIDES}
-          currentIndex={currentIndex}
-          onSelectSlide={idx => setCurrentIndex(idx)}
+          slides={timelineSlides}
+          currentIndex={timelineIndex}
+          onSelectSlide={handleSelectTimeline}
           onPrev={handlePrev}
           onNext={handleNext}
         />
