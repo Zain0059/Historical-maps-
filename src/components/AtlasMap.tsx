@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'motion/react';
-import { SlideData, OutpostPoint, FrontierLandmark } from '../types';
+import { SlideData, OutpostPoint, FrontierLandmark, ControlType } from '../types';
 import { MODERN_REFERENCE, MODERN_DISPUTES } from '../data/boundaryReview';
-import { drawBoundaryFeatures, featurePoints } from '../lib/boundaryLayers';
+import { CONTROL_STYLES, drawBoundaryFeatures, featurePoints } from '../lib/boundaryLayers';
 import { Layers, Eye, Compass, Maximize2, X, History, Map as MapIcon, RotateCcw } from 'lucide-react';
 
 // Fix standard Leaflet default marker icon paths if standard markers are ever referenced
@@ -907,7 +907,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
       {currentSlide.boundaryReview && <div className="absolute left-2 top-2 z-[490] max-w-[43%] bg-white/95 border border-stone-400 p-1.5 rounded text-[10px] text-stone-900 pointer-events-none" dir="rtl">
         {currentSlide.boundaryPhase?.label ?? (currentSlide.boundaryReview.status==='schematic'?'ترسيم سابق غير محقق':'مرجع معاصر معمّم')}
-        <div>{currentSlide.id===1||currentSlide.id===2?'الرمادي سياق جغرافي · النقاط شواهد مواقع':'▧ نزاع · ⋯ عدم يقين'}</div>
+        <div>{currentSlide.boundaryReview?.timelineStages?'الرمادي سياق جغرافي · النقاط مراكز وشواهد':'▧ نزاع · ⋯ عدم يقين'}</div>
       </div>}
       {currentSlide.boundaryPhase?.sourceIds.some(id=>id==='cshapes'||id.startsWith('awmc')) && <div className="absolute bottom-1 left-1 z-[490] max-w-[45%] bg-white/95 px-1 text-[9px] text-stone-900 leading-tight" dir="ltr">
         {currentSlide.boundaryPhase.sourceIds.includes('cshapes')?<><a href="https://icr.ethz.ch/data/cshapes/" target="_blank" rel="noopener noreferrer">CShapes / Schvitz et al.</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a></>:<><a href="https://awmc.unc.edu/gis-data/" target="_blank" rel="noopener noreferrer">AWMC</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">ODbL 1.0</a></>}
@@ -1153,6 +1153,14 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
           {/* القسم 3: مفتاح ودليل الخريطة */}
           <div className="space-y-1.5 text-[11.5px] leading-tight text-[#17120a] mb-2.5">
             <div className="text-[11px] font-bold text-[#752612] mb-1">دليل الرموز:</div>
+            {currentSlide.boundaryReview?.timelineStages ? (
+              [...new Set<ControlType>(currentSlide.extent?.controlFeatures?.map(f => f.type) ?? [])].map(type => (
+                <div key={type} className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{backgroundColor: CONTROL_STYLES[type].color}} />
+                  <span>{CONTROL_STYLES[type].label}</span>
+                </div>
+              ))
+            ) : <>
             <div>▧ أحمر مخطط: نزاع أو مطالبات متعارضة</div>
             <div>⋯ بنفسجي: عدم يقين أو اختلاف إسناد</div>
             <div>– – أخضر: تبعية / نفوذ</div>
@@ -1164,6 +1172,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
               <span className="w-3 h-3 rounded-sm bg-[#8a3b24] opacity-80 shrink-0 border border-[#8a3b24]"></span>
               <span className="font-bold">نطاق إقليمي — راجع درجة الدقة</span>
             </div>
+            </>}
 
             {currentSlide.extent?.secondary && (
               <div className="flex items-center gap-2">
@@ -1189,7 +1198,7 @@ export const AtlasMap: React.FC<AtlasMapProps> = ({
 
           {/* Clarification & Close button */}
           <div className="border-t border-[#cbbd95]/70 pt-2 flex items-center justify-between text-[10px] text-[#6e5d42]">
-            <span>ⓘ الحدود تقريبية مبنية على معالم تاريخية.</span>
+            <span>{currentSlide.boundaryReview?.timelineStages ? 'ⓘ النقاط مواقع، وليست حدود أقاليم.' : 'ⓘ الحدود تقريبية مبنية على معالم تاريخية.'}</span>
             <button
               id="hide-legend-text-btn"
               onPointerDown={(e) => e.stopPropagation()}
