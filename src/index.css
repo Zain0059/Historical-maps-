@@ -620,3 +620,33 @@ h1, h2, h3, h4, .font-serif {
   line-height: 1.7;
 }
 .boundary-review summary { min-height: 32px; }
+
+/* Keep both timeline rows inside the visible mobile viewport, including browser chrome. */
+#atlas-app-root {
+  height: 100vh;
+  height: 100dvh;
+}
+.atlas-footer {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--ink-deep);
+}
+.timeline-strip {
+  border-top: 1px solid var(--gold-line);
+  background: #1b2922;
+  box-shadow: 0 -4px 18px #00000020;
+}
+.timeline-rows { grid-template-rows: 38px 78px; }
+.timeline-viewport {
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-padding-inline: 8px;
+}
+.timeline-viewport::-webkit-scrollbar { display: none; }
+.timeline-era-heading { font-family: 'Tajawal', sans-serif; }
+.timeline-era-button { white-space: nowrap; }
+.timeline-stage-date { color: #cbbd95; }
+.timeline-stage[aria-current="step"] .timeline-stage-date { color: #72532b; }
+.timeline-stage { scroll-margin-inline: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .timeline-stage { transition: none; }
+}

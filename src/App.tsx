@@ -90,7 +90,7 @@ export default function App() {
   };
 
   return (
-    <div id="atlas-app-root" className="flex flex-col h-screen w-screen overflow-hidden bg-[#141c17] text-[#e9e0c7]">
+    <div id="atlas-app-root" className="flex flex-col w-full overflow-hidden bg-[#141c17] text-[#e9e0c7]">
       {/* Top Header */}
       <Header
         currentIndex={currentIndex}
@@ -147,7 +147,7 @@ export default function App() {
       </main>
 
       {/* Bottom Timeline and Navigation Bar */}
-      <footer className="flex-shrink-0 z-20">
+      <footer className="atlas-footer flex-shrink-0 z-20">
         <TimelineStrip
           slides={timelineSlides}
           currentIndex={timelineIndex}
