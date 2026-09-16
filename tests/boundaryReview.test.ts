@@ -79,7 +79,7 @@ const raid=getReviewedSlide(saite,'saite-593').extent!.controlFeatures!;
 assert.ok(raid.some(f=>f.type==='campaign'&&f.geometryType==='point'));
 assert.ok(!getReviewedSlide(saite,'saite-550').extent!.controlFeatures!.some(f=>f.type==='campaign'));
 for(const slide of ALL_SLIDES) assert.equal(getReviewedSlide(slide).geographicalStats,undefined,'Do not present unverified maximum reach as geographic fact');
-for (const [eraId,count] of [[1,3],[2,4],[3,4],[4,3]]) {
+for (const [eraId,count] of [[1,3],[2,4],[3,4],[4,3],[5,5],[6,5]]) {
  const slide=ALL_SLIDES.find(s=>s.id===eraId)!;
  const phases=BOUNDARY_REVIEWS[eraId].phases!;
  assert.equal(phases.length,count);
@@ -119,3 +119,11 @@ for(const phase of secondPhases){
 }
 assert.ok(getReviewedSlide(ALL_SLIDES[4], 'second-1530').date.includes('1530'),'Explain the transitional endpoint in the era date');
 console.log('Middle Kingdom and Second Intermediate phase attribution and coordinates passed.');
+
+const kush=BOUNDARY_REVIEWS[6].phases!;
+assert.ok(!kush[1].features.some(f=>f.type==='campaign'),'Do not backdate the Assyrian invasion');
+assert.ok(kush[2].features.some(f=>f.type==='campaign'&&f.sourceIds?.includes('esarhaddonHistory')));
+assert.ok(kush[3].features.some(f=>f.type==='campaign'&&f.name?.startsWith('طيبة')));
+assert.ok(!kush[4].features.some(f=>f.type==='campaign'),'Do not retain the sack of Thebes in the Saite transition');
+assert.ok(kush.every(p=>p.features.some(f=>f.name?.startsWith('نبتة')&&f.type==='independent_center')),'Kush continues independently of the Egyptian transition');
+assert.ok(BOUNDARY_REVIEWS[5].phases!.filter(p=>p.features.some(f=>f.name?.startsWith('أخيتاتون'))).length===1,'Do not persist Akhenaten’s capital into the Ramesside period');

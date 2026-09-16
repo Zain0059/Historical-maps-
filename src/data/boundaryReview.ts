@@ -1,3 +1,4 @@
+import { FIFTH_SIXTH_SOURCES, fifthSixthReviews } from './fifthSixthEras';
 import type { SlideData, ControlFeature } from '../types';
 import { THIRD_FOURTH_SOURCES, thirdFourthReviews } from './thirdFourthEras';
 import { FIRST_TWO_SOURCES, firstTwoReviews } from './firstTwoEras';
@@ -28,6 +29,7 @@ export interface BoundaryReview {
   phases?: BoundaryPhase[];
 }
 export const BOUNDARY_SOURCES: Record<string, BoundarySource> = {
+  ...FIFTH_SIXTH_SOURCES,
   ...FIRST_TWO_SOURCES,
   ...THIRD_FOURTH_SOURCES,
   nubiaHistory: {title:'Kamrin & Oppenheim — The Land of Nubia (The Met, 2018)',url:'https://www.metmuseum.org/essays/nubia',scope:'إدارة النوبة بواسطة نواب الملك؛ لا يثبت النص عرض نطاق صحراوي أو حداً مساحياً'},
@@ -110,10 +112,7 @@ const limits = 'المراحل لقطات مختارة وليست تسلسلاً
 // Site coordinates locate evidence, never the perimeter of a political territory.
 const megiddoCampaign: ControlFeature={type:'campaign',geometryType:'point',name:'مجدّو — حملة تحتمس الثالث',coords:[[32+35/60+6/3600,35+11/60+3/3600]],certainty:'generalized',sourceIds:['megiddoCampaign','megiddoPosition'],description:'نحو 1457 ق.م؛ العلامة عند التل لتعريف موضع الحملة، وليست مساحة المعركة أو دليلاً على ضم كل الأراضي بينه وبين مصر.'};
 const barkal: ControlFeature={type:'direct_administration',geometryType:'point',name:'جبل البركل — شاهد على الوجود المصري في النوبة',coords:[[18+32/60+13.2/3600,31+49/60+40.9/3600]],certainty:'generalized',sourceIds:['nubiaHistory','barkalHistory','barkalPosition'],description:'شاهد مكاني ضمن سياق إدارة النوبة في الدولة الحديثة. مراحل المعبد تشمل الأسرة 19؛ لا تعني النقطة أن الحد كان يمر هنا بالضبط أو أن كل النوبة كانت ذات وضع واحد.'};
-BOUNDARY_REVIEWS[5]={status:'partial',finding:'أزيل الامتداد الموحد غير الموثق من العرض. فُصلت حملة مجدّو عن شاهد الوجود المصري في النوبة في لقطتين، دون وصل المواقع بحدود مخترعة.',sourceIds:['bronze','nubiaHistory','barkalHistory','barkalPosition','megiddoCampaign','megiddoPosition'],phases:[
- {id:'new-kingdom-megiddo',year:-1457,label:'نحو 1457 ق.م — حملة مجدّو',summary:'تظهر الحملة بعلامة مستقلة عن القلب المصري. لا تُحوّل حركة الجيش إلى رقعة سيادة دائمة على الشام.',features:[{...egyptZone,sourceIds:['bronze']},megiddoCampaign],sourceIds:['bronze','megiddoCampaign','megiddoPosition'],limitations:'لقطة لموضع الحملة فقط؛ إدارة النوبة ومراكز التبعية في الشام غير مرقمنة هنا، وغيابها لا يعني استقلالها أو فقدها. '+limits},
- {id:'new-kingdom-ramesside',year:-1250,label:'نحو 1250 ق.م — شاهد من النوبة في العصر الرعمسي',summary:'يظهر جبل البركل كشاهد موضعي في سياق إدارة النوبة بواسطة نواب الملك. لا تمتد رقعة تظليل افتراضية إلى جنوب السودان.',features:[{...egyptZone,sourceIds:['bronze']},barkal],sourceIds:['bronze','nubiaHistory','barkalHistory','barkalPosition'],limitations:'التاريخ لقطة تقريبية داخل عهد رمسيس الثاني، وليس سنة إنشاء مؤكدة للمعبد. جبهة الشام والتبعية والمعاهدة الحثية تحتاج هندسة مستقلة؛ حذف علامة حملة 1457 لا يعني فقد الشام سنة 1250. '+limits},
-]};
+
 const saiteCore={...egyptZone,sourceIds:['late']};
 BOUNDARY_REVIEWS[7]={status:'partial',defaultPhaseId:'saite-550',finding:'فُصلت حملة النوبة عن القلب المصري؛ لا يُعرض بلوغ نبتة بوصفه ضماً دائماً. حد الصحراء والشام لم يوثق مكانياً.',sourceIds:['late','barkalHistory','barkalPosition'],phases:[
  {id:'saite-593',year:-593,label:'نحو 593 ق.م — حملة بسماتيك الثاني',summary:'تظهر إشارة الحملة عند جبل البركل في منطقة نبتة، منفصلة عن القلب المصري. وجود حملة لا يكفي لإثبات إدارة دائمة للنوبة.',features:[saiteCore,{type:'campaign',geometryType:'point',name:'نبتة / جبل البركل — موضع مرتبط بحملة 593 ق.م',coords:barkal.coords,certainty:'generalized',sourceIds:['barkalHistory','barkalPosition'],description:'يربط تفسير حفائر B500 تلف المعبد بهذه الحملة على سبيل الترجيح. العلامة عند الموقع الأثري، لا عند حد جنوبي مثبت ولا تمثل مسار الجيش.'}],sourceIds:['late','barkalHistory','barkalPosition'],limitations:'تحديد الشاهد هنا ترجيحي؛ لم ترسم جبهة الحملة أو كل مواقعها. '+limits},
@@ -168,14 +167,14 @@ BOUNDARY_REVIEWS[21]={status:'partial',defaultPhaseId:'modern-reference',finding
  {id:'modern-reference',year:2026,label:'مرجع معاصر — الحدود واختلاف المطالبات',summary:'مرجع Natural Earth المعمم، مع فصل حلايب وبئر طويل عن الحدود غير المختلف عليها. لا يحسم العرض السيادة قانونياً.',features:[{type:'direct_administration',name:'مصر — مرجع معاصر معمّم',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES],sourceIds:['ne','sudan'],limitations:'مصدر شرح المطالبات مؤرخ في 2019، وليس تحديثاً آنياً. لم تُرقمن رقعة وادي حلفا ولا مراحل 1973–1982 أو طابا في هذه اللقطة.'},
 ]};
 
-Object.assign(BOUNDARY_REVIEWS, firstTwoReviews(nile), thirdFourthReviews(nile));
+Object.assign(BOUNDARY_REVIEWS, firstTwoReviews(nile), thirdFourthReviews(nile), fifthSixthReviews(nile, megiddoCampaign, barkal));
 
 export function getReviewedSlide(slide: SlideData, phaseId?: string): SlideData {
  const review=BOUNDARY_REVIEWS[slide.id];
  if (!review) return slide;
  const phase=review.phases?.find(p=>p.id===phaseId) ?? review.phases?.find(p=>p.id===review.defaultPhaseId) ?? review.phases?.[0];
  if (slide.id===0) return {...slide, boundaryReview:review,reconstructionDate:'مرجع معاصر معمّم — Natural Earth', text:'<p>مرجع جغرافي معاصر معمّم، مع فصل الإدارة الفعلية عن اختلاف المطالبات. عرض خطوط الخريطة لا يفصل قانونياً في السيادة.</p>', keyEvents:undefined, frontierCities:undefined, borderDescription:review.finding, extent:{core:[],controlFeatures:[{type:'direct_administration',name:'مرجع مصر المعاصر — ليس حكماً بالسيادة',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES]}, sources:undefined,geographicalStats:undefined};
- if (phase) return {...slide,date:slide.id===3?'نحو 2030–1640 ق.م (الأسرات 11–13؛ تواريخ تقريبية)':slide.id===4?'نحو 1640–1550 ق.م؛ ختام انتقالي نحو 1530 وفق بعثة أفاريس':slide.date,headline:slide.id===3?'الدولة الوسطى — مراكز الحكم وحصون النوبة':slide.id===4?'عصر الانتقال الثاني — مراكز السلطة وإعادة التوحيد':slide.id===7?'العصر الصاوي — القلب المصري والحملات':slide.id===5?'الدولة الحديثة — الإدارة والحملات في لقطات مؤرخة':slide.id===21?'مصر: الحدود والسيطرة والمناطق المختلف عليها':slide.headline,capital:phase.capital,boundaryReview:review,boundaryPhase:phase,reconstructionDate:phase.label,text:`<p>${phase.summary}</p>`,borderDescription:phase.limitations,extent:{core:[],controlFeatures:phase.features},keyEvents:undefined,frontierCities:undefined,geographicalStats:undefined,sources:undefined};
+ if (phase) return {...slide,categoryLabel:slide.id===6?'الأسرة الخامسة والعشرون':slide.categoryLabel,date:slide.id===6?'نحو 744–656 ق.م؛ تشمل ختاماً انتقالياً إلى الحكم الصاوي':slide.id===3?'نحو 2030–1640 ق.م (الأسرات 11–13؛ تواريخ تقريبية)':slide.id===4?'نحو 1640–1550 ق.م؛ ختام انتقالي نحو 1530 وفق بعثة أفاريس':slide.date,headline:slide.id===6?'الأسرة الخامسة والعشرون — كوش وآشور والانتقال الصاوي':slide.id===3?'الدولة الوسطى — مراكز الحكم وحصون النوبة':slide.id===4?'عصر الانتقال الثاني — مراكز السلطة وإعادة التوحيد':slide.id===7?'العصر الصاوي — القلب المصري والحملات':slide.id===5?'الدولة الحديثة — الإدارة والحملات في لقطات مؤرخة':slide.id===21?'مصر: الحدود والسيطرة والمناطق المختلف عليها':slide.headline,capital:phase.capital,boundaryReview:review,boundaryPhase:phase,reconstructionDate:phase.label,text:`<p>${phase.summary}</p>`,borderDescription:phase.limitations,extent:{core:[],controlFeatures:phase.features},keyEvents:undefined,frontierCities:undefined,geographicalStats:undefined,sources:undefined};
  // Retain the original data for comparison, visibly classified as unverified;
  // never invent phase geometries from a chronology-only source.
  return {...slide,boundaryReview:review,geographicalStats:undefined,borderDescription:review.finding,extent:slide.extent?{...slide.extent,coreLabel:'رسم سابق غير محقق مكانياً',secondaryLabel:'امتداد سابق غير محقق مكانياً',controlFeatures:undefined}:undefined};

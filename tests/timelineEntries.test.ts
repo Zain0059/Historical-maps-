@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { ALL_SLIDES } from '../src/data/historicalData';
 import { buildTimelineEntries, findTimelineIndex } from '../src/lib/timelineEntries';
 const entries = buildTimelineEntries(ALL_SLIDES);
-assert.equal(entries.length, ALL_SLIDES.length + 10);
+assert.equal(entries.length, ALL_SLIDES.length + 18);
 assert.deepEqual(entries.slice(0,16).map(e=>e.slide.id),[0,1,1,1,2,2,2,2,3,3,3,3,4,4,4,5]);
 for (let i=0;i<entries.length;i++) {
  const entry=entries[i];
@@ -21,4 +21,7 @@ assert.equal(entries[12].phaseId,'second-1640');
 assert.equal(entries[14].phaseId,'second-1530');
 assert.equal(findTimelineIndex(entries,3,'missing'),8);
 assert.equal(findTimelineIndex(entries,4,'missing'),12);
-assert.equal(entries.filter(e=>e.slide.id===5).length,1,'Only expand the requested batches');
+assert.equal(entries.filter(e=>e.slide.id===7).length,1,'Only expand the requested batches');
+
+assert.deepEqual(entries.slice(15,25).map(e=>e.slide.id),[5,5,5,5,5,6,6,6,6,6]);
+assert.equal(entries[24].phaseId,'kush-saite-transition');
