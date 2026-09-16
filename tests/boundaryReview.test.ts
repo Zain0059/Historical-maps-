@@ -79,7 +79,7 @@ const raid=getReviewedSlide(saite,'saite-593').extent!.controlFeatures!;
 assert.ok(raid.some(f=>f.type==='campaign'&&f.geometryType==='point'));
 assert.ok(!getReviewedSlide(saite,'saite-550').extent!.controlFeatures!.some(f=>f.type==='campaign'));
 for(const slide of ALL_SLIDES) assert.equal(getReviewedSlide(slide).geographicalStats,undefined,'Do not present unverified maximum reach as geographic fact');
-for (const [eraId,count] of [[1,3],[2,4]]) {
+for (const [eraId,count] of [[1,3],[2,4],[3,4],[4,3]]) {
  const slide=ALL_SLIDES.find(s=>s.id===eraId)!;
  const phases=BOUNDARY_REVIEWS[eraId].phases!;
  assert.equal(phases.length,count);
@@ -99,3 +99,23 @@ assert.ok(oldPhases[1].features.some(f=>f.name?.startsWith('وادي الجرف'
 assert.ok(oldPhases[3].features.some(f=>f.name?.startsWith('عين أصيل')&&f.coords?.[0][0]===25.559380));
 assert.ok(oldPhases.slice(0,3).every(p=>!p.features.some(f=>f.name?.startsWith('عين أصيل'))),'Do not backdate Sixth Dynasty governors');
 console.log('Boundary audit coverage, phase isolation, source references, coordinates, and dispute semantics passed.');
+
+const middlePhases=BOUNDARY_REVIEWS[3].phases!;
+const secondPhases=BOUNDARY_REVIEWS[4].phases!;
+assert.ok(!middlePhases.slice(0,2).some(p=>p.features.some(f=>f.name?.startsWith('سمنة'))),'Do not backdate Senwosret III frontier evidence');
+assert.ok(middlePhases[2].features.some(f=>f.type==='trade_mining_garrison'&&f.sourceIds?.includes('semnaStela')));
+assert.ok(!middlePhases.some(p=>p.features.some(f=>f.type==='independent_center')),'Do not backdate the Hyksos state');
+assert.ok(secondPhases[1].features.some(f=>f.type==='uncertain_frontier'&&f.name?.startsWith('سمنة')));
+assert.ok(!secondPhases.some(p=>p.features.some(f=>f.type==='trade_mining_garrison')),'Do not inherit Egyptian Nubian garrisons into the Second Intermediate Period');
+assert.ok(secondPhases[0].features.some(f=>f.name?.startsWith('أفاريس')&&f.type==='independent_center'));
+assert.ok(secondPhases[2].features.some(f=>f.name?.startsWith('أفاريس')&&f.type==='campaign'));
+assert.ok(!secondPhases[2].features.some(f=>f.name?.startsWith('أفاريس')&&f.type==='independent_center'),'Remove Hyksos authority after the conquest');
+for(const phase of secondPhases){
+ const k=phase.features.find(f=>f.name?.startsWith('كرمة'))!;
+ assert.equal(k.type,'independent_center','Kerma must not be labelled an Egyptian dependency');
+ assert.ok(Math.abs(k.coords![0][0]-(19+36/60+2.89/3600))<1e-9);
+ const a=phase.features.find(f=>f.name?.startsWith('أفاريس'))!;
+ assert.deepEqual(a.coords,[[30+47/60,31+50/60]],'Keep expedition site position separate from later Pi-Ramesses');
+}
+assert.ok(getReviewedSlide(ALL_SLIDES[4], 'second-1530').date.includes('1530'),'Explain the transitional endpoint in the era date');
+console.log('Middle Kingdom and Second Intermediate phase attribution and coordinates passed.');

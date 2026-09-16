@@ -7,10 +7,11 @@ export interface TimelineEntry {
   slide: SlideData;
 }
 
-// Expand the current two-era batch; retain the other eras' existing navigation.
+// Expand reviewed batches explicitly; other eras keep their existing navigation.
 export function buildTimelineEntries(slides: SlideData[]): TimelineEntry[] {
   return slides.flatMap((slide, eraIndex) => {
-    const phases = (slide.id === 1 || slide.id === 2) ? BOUNDARY_REVIEWS[slide.id]?.phases : undefined;
+    const review = BOUNDARY_REVIEWS[slide.id];
+    const phases = review?.timelineStages ? review.phases : undefined;
     return phases?.length
       ? phases.map(phase => ({eraIndex, phaseId: phase.id, slide: getReviewedSlide(slide, phase.id)}))
       : [{eraIndex, slide}];

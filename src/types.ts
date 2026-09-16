@@ -3,6 +3,7 @@ export type PeriodCategory = 'ancient' | 'greco_roman' | 'islamic_medieval' | 'm
 export type ControlType =
   | 'geographic_context'
   | 'archaeological_site'
+  | 'independent_center'
   | 'direct_administration'
   | 'administrative_boundary'
   | 'joint_administration'

@@ -1,4 +1,5 @@
 import type { SlideData, ControlFeature } from '../types';
+import { THIRD_FOURTH_SOURCES, thirdFourthReviews } from './thirdFourthEras';
 import { FIRST_TWO_SOURCES, firstTwoReviews } from './firstTwoEras';
 import reference from './referenceGeography.json';
 import romanBoundaries from './romanBoundaries.json';
@@ -19,6 +20,7 @@ export interface BoundaryPhase {
   capital?: SlideData['capital'];
 }
 export interface BoundaryReview {
+  timelineStages?: boolean;
   defaultPhaseId?: string;
   status: 'schematic' | 'partial';
   finding: string;
@@ -27,6 +29,7 @@ export interface BoundaryReview {
 }
 export const BOUNDARY_SOURCES: Record<string, BoundarySource> = {
   ...FIRST_TWO_SOURCES,
+  ...THIRD_FOURTH_SOURCES,
   nubiaHistory: {title:'Kamrin & Oppenheim — The Land of Nubia (The Met, 2018)',url:'https://www.metmuseum.org/essays/nubia',scope:'إدارة النوبة بواسطة نواب الملك؛ لا يثبت النص عرض نطاق صحراوي أو حداً مساحياً'},
   barkalHistory: {title:'Learning Sites / Timothy Kendall — Jebel Barkal, Temple B500 (2019)',url:'https://www.learningsites.com/GebelBarkal-2/GB-B500.php',scope:'تفسير حفائر المعبد ومراحله المصرية، ومنها الأسرة 19؛ وجود المعبد ليس إحداثيات لحد سياسي'},
   barkalPosition: {title:'UNESCO — Gebel Barkal, geographical data',url:'https://whc.unesco.org/en/list/1073/maps/',scope:'موضع جبل البركل، المكوّن 1073-001؛ ليس حدود إقليم نبتة أو النوبة'},
@@ -128,11 +131,6 @@ BOUNDARY_REVIEWS[18].phases = [
 ];
 
 const point = (type: ControlFeature['type'],name:string,position:Point,description:string,sourceIds:string[]):ControlFeature => ({type,name,coords:[position],geometryType:'point',description,sourceIds,certainty:'generalized'});
-const semna=point('trade_mining_garrison','سمنة الغربية — شاهد على منظومة حصون النوبة',[21.494253,30.960949],'الموضع موثق في المعجم الجغرافي. علامة الحصن لا تصلح لرسم خط عرض سيادي عبر الصحراء.', ['nubia','bronze']);
-BOUNDARY_REVIEWS[3]={status:'partial',finding:'فُصلت إعادة التوحيد عن مرحلة حصون الأسرة 12. أُزيل حد الصحراء غير الموثق.',sourceIds:['middle','bronze','nubia'],phases:[
- {id:'middle-2000',year:-2000,label:'نحو 2000 ق.م — بعد إعادة التوحيد',summary:'القلب المصري في أواخر الأسرة 11. لا تُنقل شبكة حصون الأسرة 12 إلى هذه اللقطة السابقة عليها.',features:[{...egyptZone,sourceIds:['middle']}],sourceIds:['middle'],limitations:limits+' عدم عرض إقليم خارج الوادي لا يثبت عدم وجود نفوذ فيه.'},
- {id:'middle-1850',year:-1850,label:'نحو 1850 ق.م — الأسرة 12 وحصون النوبة',summary:'تضاف سمنة كعلامة موثقة على منظومة الحصون في النوبة؛ لا يُملأ كامل الإقليم الصحراوي بين الحصن ومصر.',features:[{...egyptZone,sourceIds:['middle']},semna],sourceIds:['middle','bronze','nubia'],limitations:limits+' هذه خريطة للقلب الجغرافي وشاهد حدودي، وليست حصرًا لكل الحصون أو أراضي الإدارة.'},
-]};
 BOUNDARY_REVIEWS[9]={status:'partial',finding:'فُصلت أنظمة الحكم المتعاقبة عن الرسم الجغرافي. لا يُعرض الاحتلال الساساني باعتباره حكماً بيزنطياً.',sourceIds:['roman','islam'],phases:[
  {id:'roman-200',year:200,label:'نحو 200 م — الحكم الروماني',summary:'القلب المصري تحت الإدارة الرومانية. لا تمثل الرقعة كل تقسيمات الولايات أو حدود النوبة وسيناء.',features:[{...egyptZone,sourceIds:['roman']}],sourceIds:['roman'],limitations:limits},
  {id:'byzantine-550',year:550,label:'نحو 550 م — الحكم البيزنطي',summary:'لقطة للحكم البيزنطي قبل الاحتلال الساساني؛ ثبات الرقعة التوضيحية لا يعني ثبات الحدود الإدارية.',features:[{...egyptZone,sourceIds:['islam']}],sourceIds:['islam'],limitations:limits},
@@ -170,14 +168,14 @@ BOUNDARY_REVIEWS[21]={status:'partial',defaultPhaseId:'modern-reference',finding
  {id:'modern-reference',year:2026,label:'مرجع معاصر — الحدود واختلاف المطالبات',summary:'مرجع Natural Earth المعمم، مع فصل حلايب وبئر طويل عن الحدود غير المختلف عليها. لا يحسم العرض السيادة قانونياً.',features:[{type:'direct_administration',name:'مصر — مرجع معاصر معمّم',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES],sourceIds:['ne','sudan'],limitations:'مصدر شرح المطالبات مؤرخ في 2019، وليس تحديثاً آنياً. لم تُرقمن رقعة وادي حلفا ولا مراحل 1973–1982 أو طابا في هذه اللقطة.'},
 ]};
 
-Object.assign(BOUNDARY_REVIEWS, firstTwoReviews(nile));
+Object.assign(BOUNDARY_REVIEWS, firstTwoReviews(nile), thirdFourthReviews(nile));
 
 export function getReviewedSlide(slide: SlideData, phaseId?: string): SlideData {
  const review=BOUNDARY_REVIEWS[slide.id];
  if (!review) return slide;
  const phase=review.phases?.find(p=>p.id===phaseId) ?? review.phases?.find(p=>p.id===review.defaultPhaseId) ?? review.phases?.[0];
  if (slide.id===0) return {...slide, boundaryReview:review,reconstructionDate:'مرجع معاصر معمّم — Natural Earth', text:'<p>مرجع جغرافي معاصر معمّم، مع فصل الإدارة الفعلية عن اختلاف المطالبات. عرض خطوط الخريطة لا يفصل قانونياً في السيادة.</p>', keyEvents:undefined, frontierCities:undefined, borderDescription:review.finding, extent:{core:[],controlFeatures:[{type:'direct_administration',name:'مرجع مصر المعاصر — ليس حكماً بالسيادة',polygons:MODERN_REFERENCE,certainty:'generalized',sourceIds:['ne']},...MODERN_DISPUTES]}, sources:undefined,geographicalStats:undefined};
- if (phase) return {...slide,headline:slide.id===7?'العصر الصاوي — القلب المصري والحملات':slide.id===5?'الدولة الحديثة — الإدارة والحملات في لقطات مؤرخة':slide.id===21?'مصر: الحدود والسيطرة والمناطق المختلف عليها':slide.headline,capital:phase.capital,boundaryReview:review,boundaryPhase:phase,reconstructionDate:phase.label,text:`<p>${phase.summary}</p>`,borderDescription:phase.limitations,extent:{core:[],controlFeatures:phase.features},keyEvents:undefined,frontierCities:undefined,geographicalStats:undefined,sources:undefined};
+ if (phase) return {...slide,date:slide.id===3?'نحو 2030–1640 ق.م (الأسرات 11–13؛ تواريخ تقريبية)':slide.id===4?'نحو 1640–1550 ق.م؛ ختام انتقالي نحو 1530 وفق بعثة أفاريس':slide.date,headline:slide.id===3?'الدولة الوسطى — مراكز الحكم وحصون النوبة':slide.id===4?'عصر الانتقال الثاني — مراكز السلطة وإعادة التوحيد':slide.id===7?'العصر الصاوي — القلب المصري والحملات':slide.id===5?'الدولة الحديثة — الإدارة والحملات في لقطات مؤرخة':slide.id===21?'مصر: الحدود والسيطرة والمناطق المختلف عليها':slide.headline,capital:phase.capital,boundaryReview:review,boundaryPhase:phase,reconstructionDate:phase.label,text:`<p>${phase.summary}</p>`,borderDescription:phase.limitations,extent:{core:[],controlFeatures:phase.features},keyEvents:undefined,frontierCities:undefined,geographicalStats:undefined,sources:undefined};
  // Retain the original data for comparison, visibly classified as unverified;
  // never invent phase geometries from a chronology-only source.
  return {...slide,boundaryReview:review,geographicalStats:undefined,borderDescription:review.finding,extent:slide.extent?{...slide.extent,coreLabel:'رسم سابق غير محقق مكانياً',secondaryLabel:'امتداد سابق غير محقق مكانياً',controlFeatures:undefined}:undefined};
