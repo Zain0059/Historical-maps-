@@ -190,10 +190,6 @@ export const NarrativePanel: React.FC<NarrativePanelProps> = ({
           {/* Sovereign Borders Description */}
           {slide.borderDescription && (
             <div className="mt-5 p-4 rounded-lg bg-[#ffffff] border-r-4 border-[#8a3b24] border-t border-b border-l border-[#d8cdb1] shadow-xs">
-              <h3 className="font-serif font-bold text-base text-[#752612] mb-1.5 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#8a3b24]" />
-                <span>توصيف الحدود السيادية والامتداد الجغرافي:</span>
-              </h3>
               <p className="text-[14.5px] leading-relaxed text-[#151009] font-normal">
                 {slide.borderDescription}
               </p>
