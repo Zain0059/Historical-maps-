@@ -1,0 +1,43 @@
+import type { ControlFeature } from '../types';
+import type { BoundaryPhase, BoundaryReview, BoundarySource } from './boundaryReview';
+type Point = [number, number];
+export const FIFTH_SIXTH_SOURCES: Record<string, BoundarySource> = {
+  newKingdomHistory: {title: 'The Met — Egypt in the New Kingdom', url: 'https://www.metmuseum.org/essays/egypt-in-the-new-kingdom-ca-1550-1070-b-c', scope: 'إعادة التوحيد والتوسع وتعدد وظائف مراكز الحكم؛ لا يقدم حدوداً مساحية.'},
+  amarnaHistory: {title: 'Amarna Project — About Amarna', url: 'https://www.amarnaproject.com/about-amarna/', scope: 'عاصمة إخناتون القصيرة العمر، نحو 1347–1332 ق.م. العلامة تقريبية لتعريف المنطقة، وليست إحداثيات قصر.'},
+  thirdIntermediateHistory: {title: 'The Met — Egypt in the Third Intermediate Period', url: 'https://www.metmuseum.org/essays/egypt-in-the-third-intermediate-period-1070-712-b-c', scope: 'انقسام السلطة بعد الدولة الحديثة، وصعود كوش وحملة بعنخي والتدخل الآشوري؛ ترتيب شبكا وشبتكو محل نقاش.'},
+  saiteTransition: {title: 'The Met — Egypt in the Late Period', url: 'https://www.metmuseum.org/essays/egypt-in-the-late-period-ca-712-332-b-c', scope: 'استعادة بسماتيك الأول السيطرة على منطقة طيبة سنة 656 ق.م؛ لا يعني انسحاب آشور ضم كوش إلى مصر.'},
+  esarhaddonHistory: {title: 'British Museum — Esarhaddon', url: 'https://www.britishmuseum.org/collection/term/BIOG62195', scope: 'تأريخ غزو أسرحدون لمصر سنة 671 ق.م؛ لا يرسم نطاق الاحتلال.'}
+};
+const thebes: Point = [25+43/60+8/3600,32+39/60+26.1/3600];
+const memphis: Point = [29+51/60+19.8/3600,31+15/60+39.8/3600];
+const site = (type: ControlFeature['type'], name: string, position: Point, description: string, sourceIds: string[]): ControlFeature => ({type,name,coords:[position],geometryType:'point',certainty:'generalized',description,sourceIds});
+const common = 'لقطات منتقاة، وليست حصراً لكل الملوك أو المواقع. الرمادي سياق جغرافي لا مساحة سيادة. النقاط لا ترسم حدود الأقاليم، وغياب موقع عن مرحلة لا يثبت فقده. التواريخ تقريبية ما لم يحدد حدث بعينه.';
+export function fifthSixthReviews(nile: Point[], megiddo: ControlFeature, barkal: ControlFeature): Record<number, BoundaryReview> {
+  const context: ControlFeature = {type:'geographic_context',name:'الوادي والدلتا — سياق جغرافي',coords:nile,certainty:'schematic',sourceIds:['newKingdomHistory'],description:'خلفية لتعريف المواقع؛ لا تمثل وحدة سياسية مستمرة.'};
+  const t = site('direct_administration','طيبة — مركز ملكي وديني',thebes,'مرجع منطقة طيبة عند الكرنك، وليس موضع قصر أو حدود المدينة.', ['newKingdomHistory','thebesPositions']);
+  const amarna = site('direct_administration','أخيتاتون — عاصمة إخناتون', [27.65,30.90], 'علامة تقريبية لمنطقة العمارنة على الضفة الشرقية، لا نقطة مسح أثري. لا تمثل توسعاً إقليمياً.', ['amarnaHistory']);
+  amarna.certainty = 'schematic';
+  const napata = site('independent_center','نبتة — مركز المملكة الكوشية',barkal.coords![0],'مرجع جبل البركل لتعريف منطقة نبتة، لا قصر محدد. كوش مملكة ذات مركزها السياسي، وليست مقاطعة مصرية في هذه الحقبة.', ['thirdIntermediateHistory','barkalPosition']);
+  const kushThebes = site('direct_administration','طيبة — سلطة الأسرة الكوشية',thebes,'مركز ديني وسياسي في ظل الأسرة 25؛ العلامة لا تعمم هذا الوضع على جميع مراحل القرن السابع.', ['thirdIntermediateHistory','thebesPositions']);
+  const piye = site('campaign','منف — حملة بعنخي وخضوع الحكام',memphis,'نحو 730–729 ق.م؛ موقع الحدث عند منف. خضوع الحكام لا يعني اختفاء مراكزهم المحلية فوراً.', ['thirdIntermediateHistory','memphisPositions']);
+  const assyria = site('campaign','مصر — غزو أسرحدون سنة 671 ق.م',memphis,'العلامة مرجع إقليمي عند منف، وليست تحديداً لميدان المعركة أو مسار الجيش. أعقب الغزو حكم وكلاء محليين في الدلتا.', ['esarhaddonHistory','thirdIntermediateHistory','memphisPositions']);
+  const sack = site('campaign','طيبة — الاجتياح الآشوري نحو 663 ق.م',thebes,'موقع المدينة المنهوبة، وليس مضلع احتلال دائم. يرد تأريخ 664/663 بحسب التسلسل المستخدم.', ['thirdIntermediateHistory','thebesPositions']);
+  const saite = site('direct_administration','طيبة — انتقال السيطرة إلى بسماتيك الأول',thebes,'سنة 656 ق.م: تثبيت السلطة الصاوية في الجنوب. لا تشمل هذه العلامة مملكة كوش المستمرة جنوباً.', ['saiteTransition','thebesPositions']);
+  const phase = (id:string,year:number,label:string,summary:string,features:ControlFeature[],changes:string,narrative:string[],extraSources:string[]=[]):BoundaryPhase => ({id,year,label,summary,features:[context,...features],changes,narrative,limitations:common,sourceIds:[...new Set(['newKingdomHistory',...extraSources,...features.flatMap(f=>f.sourceIds??[])])]});
+  const fifth = [
+    phase('new-kingdom-foundation',-1520,'1 / 5 — نحو 1520 ق.م: تثبيت الدولة الحديثة','تبدأ السلسلة بعد إعادة التوحيد، مع طيبة مركزاً ملكياً ودينياً.',[t], 'انتقال من سقوط أفاريس إلى حكم الأسرة الثامنة عشرة.', ['هذه اللقطة تلي ختام الحقبة السابقة؛ لا تكرر معركة طرد الهكسوس.', 'التوسع اللاحق في النوبة وآسيا لا يُسقط كاملاً على بداية الأسرة.']),
+    phase('new-kingdom-megiddo',-1457,'2 / 5 — نحو 1457 ق.م: حملة تحتمس الثالث','تظهر مجدّو كموقع حملة مستقل عن مراكز الإدارة.',[t,megiddo], 'تُضاف علامة حملة في بلاد الشام.', ['مجدّو توثق حدثاً عسكرياً؛ لا تكفي وحدها لرسم حدود الإمبراطورية.', 'إدارة النوبة وعلاقات التبعية الآسيوية ليستا متماثلتين، ولا تختزلهما رقعة واحدة.']),
+    phase('new-kingdom-amarna',-1340,'3 / 5 — نحو 1340 ق.م: عاصمة إخناتون','يتحول التركيز إلى أخيتاتون، العاصمة الجديدة في العمارنة.',[amarna], 'تتغير علامة مركز الحكم، وتختفي علامة حملة مجدّو المؤرخة سابقاً.', ['أخيتاتون مدينة ملكية قصيرة العمر في أواخر الأسرة 18.', 'نقل العاصمة تغير داخلي؛ لا يدل بذاته على انكماش الحدود أو زوال طيبة.']),
+    phase('new-kingdom-ramesside',-1250,'4 / 5 — نحو 1250 ق.م: الإدارة في العصر الرعمسي','جبل البركل شاهد على الوجود المصري في النوبة، وطيبة مركز ديني.',[barkal,{...t,type:'archaeological_site',name:'طيبة — مركز ديني في العصر الرعمسي'}], 'تظهر النوبة بشاهد موضعي، بعد انتهاء مرحلة عاصمة العمارنة.', ['انتقل المركز الإداري للأسرة 19 إلى الدلتا؛ لا توضع بر رعمسيس على نقطة أفاريس تلقائياً.', 'لا يُستنتج خط المعاهدة الحثية أو حدود الشام من موضع معبد في النوبة.']),
+    phase('new-kingdom-end',-1070,'5 / 5 — نحو 1070 ق.م: نهاية الدولة الحديثة','تبدأ مرحلة توزع السلطة بين الشمال وكهنة آمون في طيبة.',[site('independent_center','طيبة — مركز سلطة كهنة آمون',thebes,'لقطة انتقالية عند نهاية الأسرة 20 وبداية الأسرة 21؛ لا تعمم على العصر الرعمسي كله.', ['thirdIntermediateHistory','thebesPositions'])], 'يتغير تصنيف طيبة إلى مركز سلطة، وتُحجب شواهد الإدارة الخارجية السابقة.', ['في الشمال يبدأ حكم سمندس، وتغدو تانيس مركز الأسرة 21؛ لم ترسم لها حدود نفوذ.', 'توجد فجوة زمنية بين هذا الانتقال والحقبة السادسة المعروضة؛ الأسرة 25 لا تبدأ سنة 1070.'])
+  ];
+  const sixth = [
+    phase('kush-piye',-730,'1 / 5 — نحو 730 ق.م: حملة بعنخي','تنطلق السلطة الكوشية من نبتة، ويظهر حدث الحملة عند منف.',[napata,piye], 'بداية سلسلة مستقلة بعد قرون من نهاية الدولة الحديثة.', ['خضوع الحكام لبعنخي لم يمحُ جميع السلطات المحلية.', 'السيطرة الكوشية كانت أقوى في الجنوب؛ لا يفترض العرض تجانس حكم الدلتا.']),
+    phase('kush-taharqa',-680,'2 / 5 — نحو 680 ق.م: عهد طهارقة','لقطة للحكم الكوشي قبل الغزو الآشوري، مع نبتة وطيبة.',[napata,kushThebes], 'تُستبدل علامة الحملة بمركز سلطة في طيبة.', ['الملوك الكوشيون حكموا بوصفهم فراعنة مع احتفاظهم بجذورهم الجنوبية.', 'اختيرت لقطة من عهد طهارقة لتجنب حسم الجدل في ترتيب شبكا وشبتكو.']),
+    phase('kush-assyria',-671,'3 / 5 — 671 ق.م: الغزو الآشوري','يبدأ تدخل آشوري يقطع استقرار الحكم الكوشي في مصر.',[napata,assyria], 'تظهر علامة الغزو دون ملء مصر بلون احتلال دائم.', ['انسحب طهارقة جنوباً، واعتمد الآشوريون على حكام محليين في الدلتا.', 'تجدد القتال في السنوات التالية؛ لا تمثل 671 نهاية فورية لكل سلطة كوشية.']),
+    phase('kush-thebes',-663,'4 / 5 — نحو 663 ق.م: اجتياح طيبة','تُعرض طيبة كموقع اجتياح آشوري، مع استمرار مركز كوش جنوباً.',[napata,sack], 'ينتقل موضع الحدث العسكري من الشمال إلى طيبة.', ['تراجع تنتاماني إلى نبتة بعد الصراع.', 'استمرار المملكة الكوشية جنوباً منفصل عن قدرتها على الاحتفاظ بالحكم في مصر.']),
+    phase('kush-saite-transition',-656,'5 / 5 — 656 ق.م: الانتقال إلى الحكم الصاوي','تثبيت حكم بسماتيك الأول في طيبة يختم السلسلة الانتقالية.',[napata,saite], 'تتغير سلطة طيبة إلى الحكم الصاوي، وتبقى نبتة مركزاً كوشياً.', ['هذه مرحلة تسليم إلى الحقبة السابعة، لا عهد جديد داخل الأسرة 25.', 'نهاية النفوذ الكوشي في مصر لا تعني نهاية كوش نفسها.'])
+  ];
+  const review = (phases:BoundaryPhase[],finding:string):BoundaryReview => ({timelineStages:true,status:'partial',finding,phases,sourceIds:[...new Set(phases.flatMap(p=>p.sourceIds))]});
+  return {5:review(fifth,'خمس مراحل تفصل مراكز الحكم عن الحملات والإدارة الخارجية، وتختم بالانتقال من الدولة الحديثة.'),6:review(sixth,'خمس مراحل تفصل صعود الحكم الكوشي عن التدخل الآشوري ثم انتقال طيبة إلى الحكم الصاوي.')};
+}
